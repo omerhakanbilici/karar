@@ -30,6 +30,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   running on quit; a Release build is signed `adhoc,runtime`.
 
 - [ ] **Phase 2 — Decide: live results in the main window.**
+  Plan: [`2026-09-24-phase-2-decide.md`](2026-09-24-phase-2-decide.md)
   `POST /api/decide` types + client method, bundled presets (`Presets/*.json`, copied from Ollaya
   `crates/ollaya/src/presets/` at the pinned version), `AppModel`, `NavigationSplitView` with
   sidebar (installed models), toolbar Model + Question set pickers, `TextEditor`, simple-mode result
