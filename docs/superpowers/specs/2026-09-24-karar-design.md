@@ -79,6 +79,12 @@ a custom domain for the website (added later with a `CNAME` file).
   ③ **Advanced** toggle button (state remembered in `@AppStorage`).
 - **Sidebar:** Models (installed, loaded one marked) with "+ Download model…"; Pinned results.
 - **Content:** a `TextEditor` for the state, then the results.
+  - Token counter (simple and advanced mode): a small secondary label in the editor's bottom-right
+    corner with `usage.input_tokens` from the last `/api/decide` response ("118 tokens"), never a
+    character-based estimate. Models have small context windows (`laya:en`: 512 tokens for text,
+    questions and options together) and long text is cut silently, so the editor must not suggest
+    that any length works. When the response has `state_truncated: true`, the counter becomes a
+    warning in system orange: "Text too long for <model>: only the first part was read" (§5).
   - Simple mode: one row per question, human label, answer in words ("Yes"/"No", the choice
     label, "1.8 / 3"), a bar, a percentage.
   - Advanced mode: each question is an editable card (id, type, instructions, criteria) showing the
@@ -130,7 +136,8 @@ Karar.app
   `notarytool`, `stapler` steps in CI; no code changes.
 - **Language:** English only, no String Catalog in v1. SwiftUI `Text("…")` literals are already
   localizable keys, so adding languages later is a String Catalog plus translations, no code rewrite.
-- **Appearance:** system semantic colours only (`.primary`, `.secondary`, `.tint`, materials);
+- **Appearance:** system semantic colours only (`.primary`, `.secondary`, `.tint`, materials;
+  system orange only for the truncation warning in §3.2);
   no custom palette, so light/dark follows macOS automatically.
 
 ## 5. Error handling
@@ -143,7 +150,7 @@ Karar.app
 | Pull fails mid-stream (`DIGEST_MISMATCH`, `STORAGE_ERROR`, network) | Same; Ollaya resumes from where it stopped on Retry |
 | Selected model was deleted outside the app | Picker falls back to empty, shows "Download model…" |
 | `422` validation error on custom questions | The card named by `detail[].loc` is marked red with `msg` |
-| `state_truncated: true` | Small note under the results: "Text was shortened to fit the model" |
+| `state_truncated: true` | The editor's token counter (§3.2) turns into an orange warning: "Text too long for <model>: only the first part was read" |
 
 ## 6. Testing
 

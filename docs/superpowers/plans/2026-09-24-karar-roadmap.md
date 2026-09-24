@@ -56,9 +56,14 @@ Plans are written at the start of their phase, not all up front, so they match t
   *Acceptance:* a custom question set built only in the UI returns answers; an invalid one shows
   the error on the right card; copied curl works in Terminal.
 
-  *Also (user, Phase 3 session):* show the `state_truncated` note at the top of the results, above
-  the rows, not under them; add the input token count (`usage.input_tokens`) to the results header
-  next to "model · ms".
+  *Also (user, Phase 3 session) — token counter and truncation warning (spec §3.2, §5), in simple
+  mode too:* add `state_truncated` and `usage.input_tokens` to `DecideResponse`; a small secondary
+  counter in the editor's bottom-right corner shows the last response's `usage.input_tokens`
+  ("118 tokens"), never a character estimate; on `state_truncated: true` it turns into an orange
+  warning "Text too long for <model>: only the first part was read" (replaces the old "Text was
+  shortened" note). **Before planning, check on the real engine** (scratch `OLLAYA_MODELS`, never
+  `~/.ollaya`): does `input_tokens` include the questions and options, and after truncation is it
+  the original or the truncated length? Write the answer into Notes and design the counter on it.
 
 - [ ] **Phase 5 — Polish: errors, About, icon.**
   All rows of spec §5 (error banner with Restart, port-in-use message, pull errors + Retry, deleted
