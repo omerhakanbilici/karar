@@ -36,7 +36,7 @@ struct KararApp: App {
 
     var body: some Scene {
         Window("Karar", id: "main") {
-            MainView(app: appDelegate.app)
+            RootView(app: appDelegate.app)
         }
     }
 }

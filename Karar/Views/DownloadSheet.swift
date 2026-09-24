@@ -1,0 +1,138 @@
+import SwiftUI
+
+/// The catalog of models Karar can pull (spec §1/§3.1), opened from the sidebar's
+/// "Download model…" row and the toolbar's Model menu. Reused, read-only, by onboarding (Task 6).
+struct DownloadSheet: View {
+    let app: AppModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Download a model").font(.headline)
+                Text("Models are shared with the ollaya command line.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(20)
+            Divider()
+            List(CatalogEntry.all) { entry in
+                DownloadRow(app: app, entry: entry)
+            }
+            .listStyle(.plain)
+            Divider()
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(16)
+        }
+        .frame(width: 560, height: 520)
+    }
+}
+
+/// One catalog row: name, summary and size on the left; installed/downloading/failed/download
+/// state on the right, trailing controls vertically centred with the leading text block.
+private struct DownloadRow: View {
+    let app: AppModel
+    let entry: CatalogEntry
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(entry.name).font(.headline)
+                    if entry.recommended { RecommendedBadge() }
+                }
+                Text(entry.summary).foregroundStyle(.secondary)
+                Text("\(entry.languages) · \(entry.license) · ~\(formattedSize)")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer(minLength: 12)
+            trailing
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var formattedSize: String {
+        ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)
+    }
+
+    @ViewBuilder private var trailing: some View {
+        if app.isInstalled(entry) {
+            Label("Installed", systemImage: "checkmark")
+                .foregroundStyle(.secondary)
+        } else if let download = app.downloads[entry.name] {
+            if let error = download.error {
+                VStack(alignment: .trailing, spacing: 8) {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    Button("Retry") { app.download(entry) }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ProgressView(value: download.fraction)
+                            .frame(width: 140)
+                        if let part = activePart(download) {
+                            DownloadCaption(download: download, part: part)
+                        }
+                    }
+                    Button {
+                        app.cancelDownload(entry)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Cancel")
+                }
+            }
+        } else {
+            Button("Download") { app.download(entry) }
+                .buttonStyle(.bordered)
+        }
+    }
+
+    private func activePart(_ download: Download) -> Download.Part? {
+        download.parts.first { !$0.isDone } ?? download.parts.last
+    }
+}
+
+/// The "Recommended" tag next to a catalog entry's name; reused by onboarding (Task 6).
+struct RecommendedBadge: View {
+    var body: some View {
+        Text("Recommended")
+            .font(.caption2)
+            .foregroundStyle(.tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.quaternary, in: .capsule)
+    }
+}
+
+/// One download part's progress line, e.g. "420 MB of 854 MB · 40 MB/s · 12 sec left". Reused by
+/// onboarding (Task 6).
+struct DownloadCaption: View {
+    let download: Download
+    let part: Download.Part
+
+    var body: some View {
+        Text(text).font(.caption).monospacedDigit().foregroundStyle(.secondary)
+    }
+
+    private var text: String {
+        let bytes = { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
+        if part.isDone { return "\(bytes(part.total)) · Done" }
+        if part.completed == 0 && download.bytesPerSecond == nil { return "Waiting…" }
+        var pieces = ["\(bytes(part.completed)) of \(bytes(part.total))"]
+        if let speed = download.bytesPerSecond { pieces.append("\(bytes(Int64(speed)))/s") }
+        if let left = download.secondsLeft(part) {
+            pieces.append(Duration.seconds(left.rounded()).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .abbreviated, maximumUnitCount: 2)) + " left")
+        }
+        return pieces.joined(separator: " · ")
+    }
+}

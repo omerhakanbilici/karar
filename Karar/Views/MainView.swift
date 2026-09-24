@@ -3,6 +3,8 @@ import SwiftUI
 /// The main window (spec §3.2): installed models in the sidebar, the text on top, answers below.
 struct MainView: View {
     @Bindable var app: AppModel
+    @State private var showsDownloadSheet = false
+    @State private var modelPendingDelete: String?
 
     var body: some View {
         NavigationSplitView {
@@ -12,7 +14,19 @@ struct MainView: View {
                     ForEach(app.models, id: \.name) { model in
                         LabeledContent(model.name,
                                        value: model.details.format == "router" ? "Router" : model.details.parameterSize)
+                            .contextMenu {
+                                Button("Delete…", role: .destructive) {
+                                    modelPendingDelete = model.name
+                                }
+                            }
                     }
+                    Button {
+                        showsDownloadSheet = true
+                    } label: {
+                        Label("Download model…", systemImage: "plus")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 }
             }
             .safeAreaInset(edge: .bottom) { engineStatus }
@@ -28,6 +42,8 @@ struct MainView: View {
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
+                    Divider()
+                    Button("Download model…") { showsDownloadSheet = true }
                 } label: {
                     Label(app.model ?? "No model", systemImage: "cpu")
                         .labelStyle(.titleAndIcon)
@@ -49,12 +65,28 @@ struct MainView: View {
             }
         }
         .frame(minWidth: 720, minHeight: 480)
-        .task(id: app.daemon.state) {
-            guard case .running = app.daemon.state else { return }
-            await app.connect()
+        .sheet(isPresented: $showsDownloadSheet) {
+            DownloadSheet(app: app)
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            Task { await app.refreshModels() }
+        .confirmationDialog(
+            "Delete \(modelPendingDelete ?? "")?",
+            isPresented: Binding(get: { modelPendingDelete != nil }, set: { if !$0 { modelPendingDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: modelPendingDelete
+        ) { name in
+            Button("Delete", role: .destructive) {
+                Task { await app.delete(name) }
+            }
+        } message: { _ in
+            Text("It is removed from this Mac, also for the ollaya command line. You can download it again.")
+        }
+        .alert(
+            "Could not delete the model",
+            isPresented: Binding(get: { app.deleteError != nil }, set: { if !$0 { app.deleteError = nil } })
+        ) {
+            Button("OK") { app.deleteError = nil }
+        } message: {
+            Text(app.deleteError ?? "")
         }
     }
 
@@ -74,8 +106,11 @@ struct MainView: View {
             if !app.modelsLoaded {
                 ProgressView()
             } else if app.models.isEmpty {
-                ContentUnavailableView("No models yet", systemImage: "shippingbox",
-                                       description: Text("Run `ollaya pull laya` in Terminal, then come back to Karar."))
+                ContentUnavailableView {
+                    Label("No models", systemImage: "shippingbox")
+                } actions: {
+                    Button("Download model…") { showsDownloadSheet = true }
+                }
             } else {
                 VStack(spacing: 0) {
                     editor

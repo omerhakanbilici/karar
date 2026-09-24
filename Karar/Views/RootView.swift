@@ -1,0 +1,34 @@
+import SwiftUI
+
+/// The window's root. The only place that starts the engine connection: it never starts the
+/// daemon itself (`AppDelegate` alone does that), it just reacts once the daemon is `.running`
+/// and refreshes the model list whenever the app comes back to the front.
+struct RootView: View {
+    let app: AppModel
+
+    var body: some View {
+        Group {
+            if showsStartupProgress {
+                ProgressView("Starting Ollaya…")
+                    .frame(minWidth: 720, minHeight: 480)
+            } else {
+                MainView(app: app)
+            }
+        }
+        .task(id: app.daemon.state) {
+            guard case .running = app.daemon.state else { return }
+            await app.connect()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await app.refreshModels() }
+        }
+    }
+
+    /// Until models have loaded once, a full-window spinner stands in for `MainView` — unless the
+    /// daemon has already failed, in which case `MainView` shows its own retry UI.
+    private var showsStartupProgress: Bool {
+        if app.modelsLoaded { return false }
+        if case .failed = app.daemon.state { return false }
+        return true
+    }
+}
