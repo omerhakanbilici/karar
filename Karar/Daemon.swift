@@ -58,6 +58,7 @@ final class Daemon {
         while ContinuousClock.now < deadline {
             if terminate == nil { return }   // exited during startup; processExited set the state
             if await probe() == .ollaya {
+                if terminate == nil { return }   // exited while the probe was in flight; keep .failed
                 state = .running(owned: true)
                 return
             }
@@ -102,6 +103,14 @@ extension Daemon {
         try process.run()
         return {
             process.terminate()
+            // Bounded wait: ~3 s for a graceful exit before we force it, so a SIGTERM-ignoring
+            // ollaya can't hang the main actor forever (during the timeout path or on quit).
+            for _ in 0..<60 where process.isRunning {
+                usleep(50_000)
+            }
+            if process.isRunning {
+                kill(process.processIdentifier, SIGKILL)
+            }
             process.waitUntilExit()
         }
     }
