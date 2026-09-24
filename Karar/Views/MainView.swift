@@ -7,7 +7,8 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $app.model) {
+            // Clicking empty space would deselect; there is always a model while any is installed.
+            List(selection: Binding(get: { app.model }, set: { if let name = $0 { app.model = name } })) {
                 Section("Models") {
                     ForEach(app.models, id: \.name) { model in
                         LabeledContent(model.name,
