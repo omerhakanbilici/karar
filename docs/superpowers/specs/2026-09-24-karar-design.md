@@ -66,7 +66,7 @@ a custom domain for the website (added later with a `CNAME` file).
    once known, "~" estimate from the catalog before), license. Button: Download.
 3. **Downloading.** One progress bar per model the pull downloads (a router such as `laya` downloads
    its targets, `laya:en` and `laya:multilingual`, one bar each), with bytes, speed and ETA. Cancel.
-   "Get started" enables on `success`. It opens the main window with a sample support ticket in the
+   "Get started" enables once the pull reports `success` and the model is listed in `/api/tags`. It opens the main window with a sample support ticket in the
    text box and the *Support ticket* (`triage`) question set selected, so a result shows at once.
 
 ### 3.2 Main window

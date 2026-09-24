@@ -39,7 +39,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   *Acceptance:* typing updates the results; switching model or question set re-runs; latency on
   this Mac measured and written into "Notes" (spec §9 risk 3).
 
-- [ ] **Phase 3 — Models: download, delete, onboarding.**
+- [x] **Phase 3 — Models: download, delete, onboarding.**
   Plan: [`2026-09-24-phase-3-models.md`](2026-09-24-phase-3-models.md)
   `POST /api/pull` NDJSON stream → `AsyncThrowingStream`, `DELETE /api/delete`, `Catalog.json`,
   "Download model…" sheet, onboarding flow (spec §3.1) shown when no model is installed, sample
@@ -55,6 +55,10 @@ Plans are written at the start of their phase, not all up front, so they match t
   sidebar (in memory).
   *Acceptance:* a custom question set built only in the UI returns answers; an invalid one shows
   the error on the right card; copied curl works in Terminal.
+
+  *Also (user, Phase 3 session):* show the `state_truncated` note at the top of the results, above
+  the rows, not under them; add the input token count (`usage.input_tokens`) to the results header
+  next to "model · ms".
 
 - [ ] **Phase 5 — Polish: errors, About, icon.**
   All rows of spec §5 (error banner with Restart, port-in-use message, pull errors + Retry, deleted
@@ -75,6 +79,26 @@ Plans are written at the start of their phase, not all up front, so they match t
   Settings → Pages → Source = GitHub Actions.
   *Acceptance:* `https://omerhakanbilici.github.io/karar/` is live, the Download button fetches the
   DMG, both themes render correctly.
+
+## After v1 (not scheduled)
+
+Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
+
+- **Keeping the bundled Ollaya current.** The engine is pinned in `scripts/fetch-ollaya.sh`
+  (`OLLAYA_VERSION` + `OLLAYA_SHA256`); a runtime update means a new Karar release. Karar never
+  downloads an engine at run time: that would break the signed bundle and Hardened Runtime, and the
+  API contract and `Catalog.json` are verified against one pinned tag. Upstream ships several
+  releases a day, so bump only for a reason (a bug fix, a new model family, an API feature we need).
+  Steps: update both values, diff upstream `docs/api.md` between the two tags (§12 versioning, §13
+  compatibility), re-check `Catalog.json` against the new registry, run `xcodebuild test` and
+  `scripts/smoke.sh`, then tag.
+- **Idea: scheduled bump PR.** A weekly GitHub Actions job checks the latest `ollaya-dev/ollaya`
+  release. If it is newer than the pin, it updates `fetch-ollaya.sh`, runs the tests and the smoke
+  test, and opens a PR with the `api.md` diff attached. It never merges or tags on its own.
+- **Idea: "new version available" note in Karar.** On launch, one GitHub Releases API call for
+  `omerhakanbilici/karar`; if a newer release exists, a small note in the sidebar links to the DMG.
+  No Sparkle (no third-party dependencies); installing stays manual. An LM Studio-style runtime
+  page or Settings window only if there is ever more than this to configure.
 
 ## Notes for later phases
 
@@ -115,3 +139,20 @@ Plans are written at the start of their phase, not all up front, so they match t
   restart until the next edit (Phase 5); concurrent `refreshModels()` calls can finish out of order,
   and "No models yet" flashes before the first refresh (Phase 3); the engine version is read in
   `MainView`, not through `AppModel`.
+- Phase 3: the Ollaya v0.3.2 registry serves 9 models Karar lists in `Catalog.json` (sizes are
+  manifest totals; on this Mac both fp16 and fp32 graphs download). Resume after an interrupted pull
+  shows as a jump: the blob's first line says `completed: 0`, the next the bytes already on disk;
+  `Download` takes the first non-zero value as the baseline so speed stays honest. Speed is an
+  average since the first byte, so idle gaps between a router's parts lower it a little.
+- Phase 3: a pull that *joins* one already in flight (e.g. the CLI pulling the same name) may miss
+  its `pulling manifest` line, so Karar's bars would stay at 0 until the pull ends. Rare; not handled.
+- Phase 3, for Phase 5: `modelsLoaded` stays false if `/api/tags` keeps failing, which leaves the
+  start-up spinner up with no error; a newest `refreshModels()` that fails also discards an older
+  success. `isOnboarding` is not cleared if models appear from the CLI during onboarding.
+- Phase 3: killing Karar with SIGTERM (`pkill`) skips `applicationWillTerminate` and orphans its
+  `ollaya`; the next launch then adopts it. Quit with `osascript -e 'tell application id
+  "io.github.omerhakanbilici.karar" to quit'` in scripts (it fails while a sheet is open). For UI
+  checks: `-NSRequiresAquaSystemAppearance YES` forces light, `-AppleInterfaceStyle Dark` forces dark;
+  `OLLAYA_MODELS=<dir>` in Karar's environment reaches the child daemon, so tests never touch
+  `~/.ollaya`. The user's CLI daemon was not running during Phase 3; earlier "adopted" daemons were
+  Karar-started ones left running.
