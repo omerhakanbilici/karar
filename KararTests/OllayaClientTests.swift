@@ -124,4 +124,69 @@ final class OllayaClientTests: XCTestCase {
         XCTAssertEqual(String(decoding: try OllayaClient.stateJSON("{not json"), as: UTF8.self), #""{not json""#)
         XCTAssertEqual(String(decoding: try OllayaClient.stateJSON("hello\n\n"), as: UTF8.self), #""hello""#)
     }
+
+    private func lines(_ text: String) -> AsyncStream<String> {
+        AsyncStream { continuation in
+            for line in text.split(separator: "\n") { continuation.yield(String(line)) }
+            continuation.finish()
+        }
+    }
+
+    func testReadsThePullStreamFromTheAPIDoc() async throws {
+        // docs/api.md §7.6 example (v0.3.2), first four and last three lines.
+        let ndjson = #"""
+        {"status":"pulling manifest"}
+        {"status":"pulling 2409643934fa","digest":"sha256:2409643934fa5fa03f823921d7cb76a413143606f826946316d5ce4f5e2d15d5","total":318,"completed":318}
+        {"status":"pulling 8d32a80bb199","digest":"sha256:8d32a80bb199bcd4ff10abc28d651fe576fb59f86b24039402e49be9e01578c2","total":841114235,"completed":0}
+        {"status":"pulling 8d32a80bb199","digest":"sha256:8d32a80bb199bcd4ff10abc28d651fe576fb59f86b24039402e49be9e01578c2","total":841114235,"completed":420557117}
+        {"status":"verifying sha256 digest"}
+        {"status":"writing manifest"}
+        {"status":"success"}
+        """#
+        var seen: [PullProgress] = []
+        try await OllayaClient.readPull(lines(ndjson)) { seen.append($0) }
+        XCTAssertEqual(seen.count, 7)
+        XCTAssertEqual(seen[0], PullProgress(status: "pulling manifest", digest: nil, total: nil, completed: nil))
+        XCTAssertEqual(seen[3].total, 841_114_235)
+        XCTAssertEqual(seen[3].completed, 420_557_117)
+        XCTAssertEqual(seen.last?.status, "success")
+    }
+
+    func testAnErrorLineInThePullStreamThrowsIt() async {
+        // docs/api.md §4.3 example.
+        let ndjson = #"""
+        {"status":"pulling manifest"}
+        {"error":"blob sha256:8d32 does not match its digest; the download was discarded","code":"DIGEST_MISMATCH"}
+        """#
+        var seen = 0
+        do {
+            try await OllayaClient.readPull(lines(ndjson)) { _ in seen += 1 }
+            XCTFail("expected an error")
+        } catch {
+            XCTAssertEqual((error as? OllayaError)?.code, "DIGEST_MISMATCH")
+            XCTAssertEqual(seen, 1)
+        }
+    }
+
+    func testAPullStreamWithoutSuccessIsAFailure() async {
+        let ndjson = #"{"status":"pulling manifest"}"#
+        do {
+            try await OllayaClient.readPull(lines(ndjson)) { _ in }
+            XCTFail("expected an error")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, "The download was interrupted.")
+        }
+    }
+
+    func testDeletingAModelThatIsAlreadyGoneSucceeds() throws {
+        let url = URL(string: "http://x")!
+        let gone = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: nil)!
+        XCTAssertNoThrow(try OllayaClient.checkDelete(gone, Data(#"{"error":"model \"x:latest\" not found, try pulling it first","code":"MODEL_NOT_FOUND"}"#.utf8)))
+        let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        XCTAssertNoThrow(try OllayaClient.checkDelete(ok, Data()))
+        let busy = HTTPURLResponse(url: url, statusCode: 409, httpVersion: nil, headerFields: nil)!
+        XCTAssertThrowsError(try OllayaClient.checkDelete(busy, Data(#"{"error":"laya:en is being pulled","code":"OPERATION_IN_PROGRESS"}"#.utf8))) {
+            XCTAssertEqual(($0 as? OllayaError)?.code, "OPERATION_IN_PROGRESS")
+        }
+    }
 }

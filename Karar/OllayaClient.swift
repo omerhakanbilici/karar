@@ -80,6 +80,70 @@ struct OllayaClient: Sendable {
         return try JSONEncoder().encode(text)
     }
 
+    /// `POST /api/pull` as a stream of progress lines. Cancelling the consumer closes the
+    /// connection; the daemon then stops the pull and keeps what it has (docs/api.md §10), so the
+    /// next pull of the same name resumes.
+    func pull(model: String) -> AsyncThrowingStream<PullProgress, Error> {
+        let request: URLRequest = {
+            var request = URLRequest(url: base.appending(path: "api/pull"))
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try? JSONEncoder().encode(["model": model])
+            return request
+        }()
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let (bytes, response) = try await Self.session.bytes(for: request)
+                    // Errors before the stream starts are ordinary HTTP errors (docs/api.md §7.6).
+                    if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
+                        var body = Data()
+                        for try await byte in bytes { body.append(byte) }
+                        try Self.check(response, body)
+                    }
+                    try await Self.readPull(bytes.lines) { continuation.yield($0) }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Reads pull lines until `success`. An error line (docs/api.md §4.3) is thrown; a stream
+    /// that ends without `success` was cut off and is a failure.
+    static func readPull<Lines: AsyncSequence>(_ lines: Lines, onProgress: (PullProgress) -> Void) async throws
+    where Lines.Element == String {
+        for try await line in lines where !line.isEmpty {
+            let data = Data(line.utf8)
+            if let error = try? decoder.decode(OllayaError.self, from: data) { throw error }
+            let progress = try decoder.decode(PullProgress.self, from: data)
+            onProgress(progress)
+            if progress.status == "success" { return }
+        }
+        throw OllayaError(error: "The download was interrupted.", code: nil)
+    }
+
+    func delete(model: String) async throws {
+        var request = URLRequest(url: base.appending(path: "api/delete"))
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["model": model])
+        let (data, response) = try await Self.session.data(for: request)
+        try Self.checkDelete(response, data)
+    }
+
+    /// A `404 MODEL_NOT_FOUND` means the model is already gone, which is what was asked
+    /// (docs/api.md §7.7).
+    static func checkDelete(_ response: URLResponse, _ data: Data) throws {
+        do {
+            try check(response, data)
+        } catch let error as OllayaError where error.code == "MODEL_NOT_FOUND" {
+            return
+        }
+    }
+
     private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
         let (data, response) = try await Self.session.data(from: base.appending(path: path))
         try Self.check(response, data)

@@ -51,3 +51,12 @@ struct Answer: Decodable, Hashable, Sendable {
     let confidence: Double?
     let legend: [String: String]?
 }
+
+/// One line of the `POST /api/pull` stream (docs/api.md §7.6). Layer lines carry `digest`,
+/// `total` and `completed`; the others only `status`.
+struct PullProgress: Decodable, Equatable, Sendable {
+    let status: String
+    let digest: String?
+    let total: Int64?
+    let completed: Int64?
+}
