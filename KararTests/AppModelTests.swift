@@ -207,6 +207,7 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(app.downloads[entry.name]?.error, "The download was interrupted.")
         fake.pulls[entry.name] = nil
         app.download(entry)                                   // Retry
+        XCTAssertNotNil(app.downloads[entry.name])
         XCTAssertNil(app.downloads[entry.name]?.error)
         await waitUntil { fake.pulls[entry.name] != nil }
     }
@@ -219,6 +220,21 @@ final class AppModelTests: XCTestCase {
         await waitUntil { fake.pulls[entry.name] != nil }
         app.cancelDownload(entry)
         await waitUntil { app.downloads[entry.name] == nil }
+        fake.pulls[entry.name] = nil
+        app.download(entry)                                   // A new download can start after a cancel
+        await waitUntil { fake.pulls[entry.name] != nil }
+    }
+
+    func testCancellingAnEndedDownloadForgetsIt() async throws {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        let entry = try XCTUnwrap(CatalogEntry.named("gliclass"))
+        app.download(entry)
+        await waitUntil { fake.pulls[entry.name] != nil }
+        fake.pulls[entry.name]?.finish(throwing: OllayaError(error: "The download was interrupted.", code: nil))
+        await waitUntil { app.downloads[entry.name]?.error != nil }
+        app.cancelDownload(entry)
+        XCTAssertNil(app.downloads[entry.name])
     }
 
     func testDeleteRemovesTheModelAndMovesTheSelection() async {

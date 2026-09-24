@@ -100,9 +100,14 @@ final class AppModel {
     }
 
     /// Closing the stream detaches Karar from the pull; the daemon stops it and keeps the partial
-    /// blobs (docs/api.md §10). The task above then forgets the download.
+    /// blobs (docs/api.md §10). The task above then forgets the download. A download that has
+    /// already ended (failed or finished) has no task left to cancel, so drop its entry directly.
     func cancelDownload(_ entry: CatalogEntry) {
-        pullTasks[entry.name]?.cancel()
+        if let task = pullTasks[entry.name] {
+            task.cancel()
+        } else {
+            downloads[entry.name] = nil
+        }
     }
 
     func delete(_ model: String) async {
