@@ -120,7 +120,7 @@ struct MainView: View {
                         if app.isUpdating {
                             ProgressView().controlSize(.small)
                         } else if let result = app.result {
-                            Text("\(result.model) · \(result.totalDuration / 1_000_000) ms")
+                            Text(verbatim: "\(result.model) · \(result.totalDuration / 1_000_000) ms")
                                 .font(.caption)
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
@@ -136,7 +136,7 @@ struct MainView: View {
                                 Text(row.label).foregroundStyle(.secondary)
                                 Text(row.answer).bold()
                                 ProgressView(value: row.sureness)
-                                    .frame(minWidth: 120, maxWidth: 240)
+                                    .frame(minWidth: 120, maxWidth: .infinity)
                                 Text("\(Int((row.sureness * 100).rounded()))%")
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
