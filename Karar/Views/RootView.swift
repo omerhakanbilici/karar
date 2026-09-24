@@ -8,7 +8,9 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if showsStartupProgress {
+            if app.isOnboarding {
+                OnboardingView(app: app)
+            } else if showsStartupProgress {
                 ProgressView("Starting Ollaya…")
                     .frame(minWidth: 720, minHeight: 480)
             } else {

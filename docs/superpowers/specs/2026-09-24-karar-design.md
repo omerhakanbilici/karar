@@ -56,7 +56,7 @@ a custom domain for the website (added later with a `CNAME` file).
 
 ## 3. Screens
 
-### 3.1 Onboarding (first launch, or when no model is installed)
+### 3.1 Onboarding (when no model is installed, e.g. on first launch)
 
 1. **Welcome.** App icon, one sentence ("Ask typed questions about any text and get calibrated answers
    in milliseconds. Everything runs on this Mac."), a status line "Ollaya engine ready vX.Y.Z".
@@ -64,7 +64,8 @@ a custom domain for the website (added later with a `CNAME` file).
 2. **Choose your first model.** Radio list from `Catalog.json`; `laya` preselected and marked
    Recommended (fast, 100+ languages). Each row: name, one-line description, size (from the manifest
    once known, "~" estimate from the catalog before), license. Button: Download.
-3. **Downloading.** One progress bar per blob from `/api/pull` (bytes, speed, ETA). Cancel.
+3. **Downloading.** One progress bar per model the pull downloads (a router such as `laya` downloads
+   its targets, `laya:en` and `laya:multilingual`, one bar each), with bytes, speed and ETA. Cancel.
    "Get started" enables on `success`. It opens the main window with a sample support ticket in the
    text box and the *Support ticket* (`triage`) question set selected, so a result shows at once.
 
