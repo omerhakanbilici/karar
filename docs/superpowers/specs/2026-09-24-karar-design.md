@@ -42,7 +42,7 @@ In:
 - Main window with live results, presets, model picker, pinned results (session only).
 - One **Advanced** toggle: editable questions + inspector (routing, timings, tokens, JSON, copy as curl).
 - Model management: download, delete.
-- English (default) and Turkish UI.
+- English-only UI.
 - Automatic light/dark appearance.
 - Ad-hoc-signed DMG on GitHub Releases, built by GitHub Actions. The asset is always named
   `Karar.dmg` (no version in the file name), so
@@ -51,7 +51,7 @@ In:
 - Project website in `site/`, published with GitHub Pages at `omerhakanbilici.github.io/karar` (§8).
 
 Out (later, if needed): saved custom question sets, persistent history, `ollaya create` / Modelfiles,
-Developer ID signing + notarization, auto-update, other UI languages, Intel Macs, App Store,
+Developer ID signing + notarization, auto-update, localization (Turkish or others), Intel Macs, App Store,
 a custom domain for the website (added later with a `CNAME` file).
 
 ## 3. Screens
@@ -87,11 +87,9 @@ a custom domain for the website (added later with a `CNAME` file).
 - **Live results:** every edit cancels the in-flight request, waits 300 ms, then calls `/api/decide`.
   ⌘↩ pins the current input + answers to the sidebar (in memory only in v1).
 
-### 3.3 Settings (⌘,)
+No Settings window in v1: there is nothing to configure yet.
 
-- **Language:** English (default) / Türkçe. Changing it asks to relaunch. This is the only setting in v1.
-
-### 3.4 About
+### 3.3 About
 
 Version, engine version, links, and the licences: Karar (Apache-2.0), Ollaya (Apache-2.0),
 per-model licences.
@@ -129,11 +127,8 @@ Karar.app
   No App Sandbox (Karar spawns a process and shares `~/.ollaya` with the CLI).
   Moving to Developer ID later = certificate + secrets + `codesign --options runtime`,
   `notarytool`, `stapler` steps in CI; no code changes.
-- **Localization:** `Localizable.xcstrings` with `en` (development language) and `tr`.
-  English must win even when macOS is set to Turkish: on first launch, if the app's own defaults
-  domain has no `AppleLanguages`, write `["en"]`; the Settings picker rewrites it. Must be verified
-  on a Turkish-language Mac early (risk: the bundle's language is resolved before app code runs;
-  fallback is a one-time relaunch).
+- **Language:** English only, no String Catalog in v1. SwiftUI `Text("…")` literals are already
+  localizable keys, so adding languages later is a String Catalog plus translations, no code rewrite.
 - **Appearance:** system semantic colours only (`.primary`, `.secondary`, `.tint`, materials);
   no custom palette, so light/dark follows macOS automatically.
 
@@ -157,8 +152,7 @@ Karar.app
   - Daemon decision logic (adopt / start / port busy) against a stubbed liveness check.
 - `scripts/smoke.sh`: real engine, local only: start bundled `ollaya serve`, `pull laya:en`,
   one `decide`, check the answer shape.
-- Manual checklist before each release: first run on a clean user account, Turkish-language Mac
-  shows English, light/dark, Gatekeeper "Open Anyway" flow on the DMG.
+- Manual checklist before each release: first run on a clean user account, light/dark, Gatekeeper "Open Anyway" flow on the DMG.
 
 ## 7. Repository and open-source hygiene
 
@@ -168,7 +162,7 @@ Public repo `github.com/omerhakanbilici/karar`.
 karar/
   Karar.xcodeproj
   Karar/        KararApp.swift, AppModel.swift, Daemon.swift, OllayaClient.swift,
-                Views/, Catalog.json, Presets/*.json, Localizable.xcstrings, Assets.xcassets
+                Views/, Catalog.json, Presets/*.json, Assets.xcassets
   KararTests/
   scripts/      fetch-ollaya.sh, make-dmg.sh, smoke.sh
   .github/workflows/release.yml   (tag v* → fetch Ollaya → build → Karar.dmg → GitHub Release)
@@ -178,7 +172,7 @@ karar/
   NOTICE        "Includes Ollaya (https://github.com/ollaya-dev/ollaya), Apache-2.0"
   THIRD_PARTY.md  Ollaya licence text, bundled preset files, model licences
   README.md     what it is, screenshots (light + dark), install from DMG incl. Gatekeeper
-                "Open Anyway" steps, build from source, how to change language, licences
+                "Open Anyway" steps, build from source, licences
 ```
 
 - Name: "Karar" is ours; "Ollaya" is used only descriptively ("a Mac app for Ollaya"), per
@@ -212,9 +206,8 @@ karar/
 
 ## 9. Open risks
 
-1. Forcing English on a Turkish-language Mac (§4, Localization): verify first.
-2. Ollaya's macOS minimum version is undocumented upstream; check with `vtool -show-build` on the
+1. Ollaya's macOS minimum version is undocumented upstream; check with `vtool -show-build` on the
    pinned binary and set the deployment target to the higher of that and 14.0.
-3. Ollaya ships several releases per day; pinning + checksum protects us, but API drift is possible
+2. Ollaya ships several releases per day; pinning + checksum protects us, but API drift is possible
    between pins. Bumping `OLLAYA_VERSION` requires running `smoke.sh`.
-4. Real latency on Apple silicon (CPU/CoreML) is unmeasured; 300 ms debounce assumes < ~150 ms per call.
+3. Real latency on Apple silicon (CPU/CoreML) is unmeasured; 300 ms debounce assumes < ~150 ms per call.
