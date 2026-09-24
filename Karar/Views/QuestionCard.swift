@@ -2,6 +2,14 @@ import SwiftUI
 
 /// One question in advanced mode (spec §3.2): id, type, instructions and options, all editable,
 /// with the raw answer. A validation error from the engine marks the card in system red (spec §5).
+///
+/// Every text field below that fills the remaining row width (instructions, and each option's
+/// second field) carries an explicit `minWidth`. Without it, `.inspector` (Task 6) renegotiates the
+/// detail column's width against a field that reports back "however much you give me": the window
+/// server never settles and macOS aborts with "too many Update Constraints in Window passes"
+/// (confirmed by bisection: the crash needs both an open inspector and an unconstrained-width field
+/// in the cards; either alone is fine). The label-only fields (`id`, a choice label, a score index)
+/// already have a fixed width and never triggered it.
 struct QuestionCard: View {
     @Binding var question: Question
     let answer: Answer?
@@ -35,6 +43,7 @@ struct QuestionCard: View {
             }
             TextField("Instructions (when empty, the model reads the id)", text: $question.instructions, axis: .vertical)
                 .lineLimit(1...4)
+                .frame(minWidth: 120)
             options
             if let error {
                 Label(error, systemImage: "exclamationmark.circle.fill")
@@ -61,10 +70,11 @@ struct QuestionCard: View {
                         .font(.body.monospaced())
                         .frame(width: 160)
                     TextField("Description (optional)", text: $option.text)
+                        .frame(minWidth: 120)
                     removeButton(option)
                 }
             }
-            addButton("Add option") { question.options.append(.init(label: "option_\(question.options.count + 1)")) }
+            addButton("Add option") { question.options.append(.init(label: Self.freeLabel(in: question.options))) }
         case .score:
             ForEach($question.options) { $level in
                 let index = question.options.firstIndex { $0.id == level.id } ?? 0
@@ -74,6 +84,7 @@ struct QuestionCard: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 20, alignment: .trailing)
                     TextField("Level \(index)", text: $level.text)
+                        .frame(minWidth: 120)
                     removeButton(level)
                 }
             }
@@ -86,9 +97,19 @@ struct QuestionCard: View {
                         .frame(width: 40, alignment: .leading)
                     TextField(option.label == "true" ? "When the statement holds (optional)" : "When it does not (optional)",
                               text: $option.text)
+                        .frame(minWidth: 120)
                 }
             }
         }
+    }
+
+    /// The first `option_<n>` (n from count+1 upward) not already used, so removing an earlier
+    /// option and adding a new one never recreates a label already in use (choice criteria are a
+    /// JSON object keyed by label: a repeat would silently collide with an existing key).
+    private static func freeLabel(in options: [Question.Option]) -> String {
+        var n = options.count + 1
+        while options.contains(where: { $0.label == "option_\(n)" }) { n += 1 }
+        return "option_\(n)"
     }
 
     private func removeButton(_ option: Question.Option) -> some View {
