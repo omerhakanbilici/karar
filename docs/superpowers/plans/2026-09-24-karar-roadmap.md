@@ -20,7 +20,7 @@ Plans are written at the start of their phase, not all up front, so they match t
 
 ## Phases
 
-- [ ] **Phase 1 — Foundation: the engine runs inside the app.**
+- [x] **Phase 1 — Foundation: the engine runs inside the app.**
   Plan: [`2026-09-24-phase-1-foundation.md`](2026-09-24-phase-1-foundation.md)
   Xcode project (XcodeGen), pinned Ollaya fetched and embedded, `OllayaClient` (liveness, version,
   tags), `Daemon` (adopt / start / restart once / stop), a window that shows engine status and
@@ -80,3 +80,18 @@ Plans are written at the start of their phase, not all up front, so they match t
   `LICENSE`, `THIRD_PARTY_NOTICES`, `onnxruntime-ThirdPartyNotices.txt` in `share/doc/ollaya/`;
   deployment target stays 14.0 (spec §9 risk 1 resolved).
 - `ollaya serve` exits cleanly on SIGTERM ("shutting down").
+- Swift 6 / Xcode 27: `@State var x = Daemon(probe: { … })` fails ("default argument cannot be both
+  main actor-isolated and @concurrent"). The engine lifecycle now lives in `AppDelegate`
+  (`@NSApplicationDelegateAdaptor`, start in `applicationDidFinishLaunching`, stop in
+  `applicationWillTerminate`) with a single `Window` scene; Phase 2's `AppModel` should take the
+  `Daemon` from there, never start it from a view.
+- The nested `ollaya` is re-signed in the embed script with `--options runtime` and runs fine under
+  Hardened Runtime. Add `--timestamp` when moving to Developer ID.
+- The CLI daemon on this Mac (`/usr/local/bin/ollaya`) is also 0.3.2. Consider warning when an adopted
+  daemon's `/api/version` differs from the bundled one (Phase 2).
+- Open for later: `liveness()` maps a 1 s `.timedOut` to `.other` (false "port in use", Phase 5);
+  `StatusView` swallows `tags()` errors as "No models yet"; `ollaya.log` grows without rotation;
+  `testConcurrentStartsLaunchOnlyOnce` doesn't exercise the in-flight half of the guard (fake probe
+  never suspends).
+- Manual UI checks: Karar isn't AppleScriptable and the agent has no Accessibility access, so window
+  text has to be confirmed by the user by eye.
