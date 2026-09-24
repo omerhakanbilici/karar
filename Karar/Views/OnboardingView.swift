@@ -27,6 +27,8 @@ struct OnboardingView: View {
             }
         }
         .frame(minWidth: 720, minHeight: 480)
+        // No hard line under the title bar: the steps read as one sheet, not a document window.
+        .toolbarBackground(.hidden, for: .windowToolbar)
     }
 
     // MARK: Steps
@@ -98,7 +100,10 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ForEach(download.parts) { part in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(part.name).font(.headline).lineLimit(1)
+                            // A single-model pull is already named in the title.
+                            if download.parts.count > 1 {
+                                Text(part.name).font(.headline).lineLimit(1)
+                            }
                             ProgressView(value: part.fraction)
                             DownloadCaption(download: download, part: part)
                         }
@@ -187,7 +192,7 @@ private struct ChoiceRow: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)

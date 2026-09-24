@@ -152,8 +152,10 @@ struct DownloadCaption: View {
     private var text: String {
         let bytes = { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
         if part.isDone { return "\(bytes(part.total)) · Done" }
-        if part.completed == 0 && download.bytesPerSecond == nil { return "Waiting…" }
         var pieces = ["\(bytes(part.completed)) of \(bytes(part.total))"]
+        // A failed pull has no speed or ETA any more; keep only what is on disk.
+        if download.error != nil { return pieces[0] }
+        if part.completed == 0 && download.bytesPerSecond == nil { return "Waiting…" }
         if let speed = download.bytesPerSecond { pieces.append("\(bytes(Int64(speed)))/s") }
         if let left = download.secondsLeft(part) {
             pieces.append(Duration.seconds(left.rounded()).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .abbreviated, maximumUnitCount: 2)) + " left")
