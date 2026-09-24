@@ -28,7 +28,7 @@ struct DownloadSheet: View {
             }
             .padding(16)
         }
-        .frame(width: 560, height: 520)
+        .frame(width: 600, height: 540)
     }
 }
 
@@ -54,51 +54,76 @@ private struct DownloadRow: View {
             trailing
         }
         .padding(.vertical, 8)
+        // Every row's separator starts at the leading edge, not wherever the trailing column's
+        // content happens to start.
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
     }
 
     private var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)
     }
 
+    // One fixed width for every state, so the row's layout never shifts while a download's
+    // caption changes length (it used to make the leading summary re-wrap mid-download).
     @ViewBuilder private var trailing: some View {
-        if app.isInstalled(entry) {
-            Label("Installed", systemImage: "checkmark")
-                .foregroundStyle(.secondary)
-        } else if let download = app.downloads[entry.name] {
-            if let error = download.error {
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                    Button("Retry") { app.download(entry) }
+        Group {
+            if app.isInstalled(entry) {
+                Label("Installed", systemImage: "checkmark")
+                    .foregroundStyle(.secondary)
+            } else if let download = app.downloads[entry.name] {
+                if let error = download.error {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.trailing)
+                        Button("Retry") { app.download(entry) }
+                    }
+                } else {
+                    downloading(download)
                 }
             } else {
-                HStack(spacing: 8) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ProgressView(value: download.fraction)
-                            .frame(width: 140)
-                        if let part = activePart(download) {
-                            DownloadCaption(download: download, part: part)
-                        }
-                    }
-                    Button {
-                        app.cancelDownload(entry)
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Cancel")
-                }
+                Button("Download") { app.download(entry) }
+                    .buttonStyle(.bordered)
             }
-        } else {
-            Button("Download") { app.download(entry) }
-                .buttonStyle(.bordered)
         }
+        .frame(width: 180, alignment: .trailing)
     }
 
-    private func activePart(_ download: Download) -> Download.Part? {
-        download.parts.first { !$0.isDone } ?? download.parts.last
+    private func downloading(_ download: Download) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                ProgressView(value: download.fraction)
+                    .frame(maxWidth: .infinity)
+                Button {
+                    app.cancelDownload(entry)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .help("Cancel")
+            }
+            Text(compactCaption(download))
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// A one-line, near-constant-length stand-in for `DownloadCaption` in the sheet row: the
+    /// full per-part caption's changing byte counts made the row jump while a download ran.
+    private func compactCaption(_ download: Download) -> String {
+        let allDone = download.parts.allSatisfy { $0.total > 0 && $0.completed >= $0.total }
+        if allDone && !download.isFinished { return "Verifying…" }
+        guard let speed = download.bytesPerSecond, speed > 0 else { return "Waiting…" }
+        let percent = Int(download.fraction * 100)
+        let remaining = download.parts.reduce(Int64(0)) { $0 + max($1.total - $1.completed, 0) }
+        let eta = Duration.seconds((Double(remaining) / speed).rounded())
+            .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .abbreviated, maximumUnitCount: 2))
+        return "\(percent)% · \(eta) left"
     }
 }
 
@@ -121,7 +146,7 @@ struct DownloadCaption: View {
     let part: Download.Part
 
     var body: some View {
-        Text(text).font(.caption).monospacedDigit().foregroundStyle(.secondary)
+        Text(text).font(.caption).monospacedDigit().foregroundStyle(.secondary).lineLimit(1)
     }
 
     private var text: String {
