@@ -1,0 +1,21 @@
+[
+  {"name": "laya", "summary": "Picks the English or the multilingual Laya model for each text. Fast.",
+   "languages": "100+ languages", "license": "Apache-2.0", "size": 1537806952, "recommended": true,
+   "includes": ["laya:en", "laya:multilingual"]},
+  {"name": "laya:multilingual", "summary": "Laya on mmBERT-base (322M parameters).",
+   "languages": "100+ languages", "license": "Apache-2.0", "size": 684161400, "recommended": false, "includes": []},
+  {"name": "laya:en", "summary": "Laya on ModernBERT-large (421M parameters). The fastest for English.",
+   "languages": "English", "license": "Apache-2.0", "size": 853634822, "recommended": false, "includes": []},
+  {"name": "laya:typed-decisions", "summary": "Laya fine-tuned on the typed-decisions workflows.",
+   "languages": "English", "license": "Apache-2.0", "size": 853527607, "recommended": false, "includes": []},
+  {"name": "nli:modernbert-large", "summary": "Moritz Laurer's zero-shot NLI classifier on ModernBERT-large.",
+   "languages": "English", "license": "Apache-2.0", "size": 798924815, "recommended": false, "includes": []},
+  {"name": "nli", "summary": "Moritz Laurer's zero-shot NLI classifier on DeBERTa-v3-large.",
+   "languages": "English", "license": "MIT", "size": 884351079, "recommended": false, "includes": []},
+  {"name": "gliclass", "summary": "Knowledgator's instruction-following zero-shot classifier on DeBERTa-v3-large.",
+   "languages": "English", "license": "Apache-2.0", "size": 1768474434, "recommended": false, "includes": []},
+  {"name": "decider:0.8b", "summary": "Mapika's decider on Qwen3.5-0.8B.",
+   "languages": "English", "license": "Apache-2.0", "size": 1532870365, "recommended": false, "includes": []},
+  {"name": "decider", "summary": "Mapika's decider on Qwen3.5-2B. The most accurate, and the largest.",
+   "languages": "English", "license": "Apache-2.0", "size": 3791735106, "recommended": false, "includes": []}
+]
