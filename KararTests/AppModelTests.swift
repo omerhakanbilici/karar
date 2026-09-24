@@ -288,4 +288,148 @@ final class AppModelTests: XCTestCase {
         await waitUntil { !app.isUpdating }
         XCTAssertEqual(fake.calls.last?.state, AppModel.sampleTicket)
     }
+
+    func testEditingAQuestionSwitchesToMyQuestionsAndSendsThem() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        app.text = "hello"
+        await waitUntil { !app.isUpdating }
+        XCTAssertFalse(app.isCustom)
+        app.questions[1].instructions = "Is it urgent?"
+        XCTAssertTrue(app.isCustom)
+        await waitUntil { fake.calls.count == 2 && !app.isUpdating }
+        let sent = Question.parse(fake.calls[1].questions)
+        XCTAssertEqual(sent.map(\.key), Preset.all[0].questionIDs)
+        XCTAssertEqual(sent[1].instructions, "Is it urgent?")
+    }
+
+    func testAPresetKeepsMyQuestionsForLater() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        app.questions.removeLast()
+        XCTAssertTrue(app.isCustom)
+        app.preset = Preset.all[0]                       // the same preset, as shipped
+        XCTAssertFalse(app.isCustom)
+        XCTAssertEqual(app.questions.map(\.key), Preset.all[0].questionIDs)
+        app.useMyQuestions()
+        XCTAssertTrue(app.isCustom)
+        XCTAssertEqual(app.questions.count, 4)
+    }
+
+    func testMyQuestionsStartFromTheQuestionsOnScreen() {
+        let app = makeApp(FakeOllaya())
+        app.preset = Preset.all[1]
+        app.useMyQuestions()
+        XCTAssertTrue(app.isCustom)
+        XCTAssertEqual(app.questions.map(\.key), Preset.all[1].questionIDs)
+    }
+
+    func testAddQuestionPicksAFreeID() {
+        let app = makeApp(FakeOllaya())
+        app.addQuestion()
+        app.addQuestion()
+        XCTAssertEqual(app.questions.suffix(2).map(\.key), ["question_6", "question_7"])
+        XCTAssertEqual(app.questions.last?.kind, .noul)
+        XCTAssertTrue(app.isCustom)
+    }
+
+    func testValidationErrorsMarkTheirQuestion() async {
+        let fake = FakeOllaya()
+        let msg = "List should have at least 2 items after validation, not 1"
+        fake.failure = OllayaError(error: "questions.frustration.score.criteria: \(msg)", code: "INVALID_REQUEST",
+                                   detail: [.init(loc: [.key("body"), .key("questions"), .key("frustration"), .key("score"), .key("criteria")], msg: msg)])
+        let app = makeApp(fake)
+        app.text = "hello"
+        await waitUntil { !app.isUpdating }
+        XCTAssertEqual(app.questionErrors, ["frustration": msg])
+        XCTAssertNil(app.error, "every issue is on a card")
+        fake.failure = nil
+        app.text = "hello!"
+        await waitUntil { !app.isUpdating }
+        XCTAssertEqual(app.questionErrors, [:])
+    }
+
+    func testAnIssueOutsideTheQuestionsIsShownAboveTheAnswers() async {
+        let fake = FakeOllaya()
+        fake.failure = OllayaError(error: "state: too long", code: "INPUT_TOO_LONG",
+                                   detail: [.init(loc: [.key("body"), .key("state")], msg: "65,537 tokens is more than 65,536")])
+        let app = makeApp(fake)
+        app.text = "hello"
+        await waitUntil { !app.isUpdating }
+        XCTAssertEqual(app.error, "65,537 tokens is more than 65,536")
+        XCTAssertEqual(app.questionErrors, [:])
+    }
+
+    func testDuplicateIDsAreMarkedAndNotSent() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        app.text = "hello"
+        await waitUntil { !app.isUpdating }
+        app.questions[1].key = "intent"
+        XCTAssertEqual(app.questionErrors, ["intent": "Another question has the same id."])
+        XCTAssertNil(app.result)
+        try? await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(fake.calls.count, 1)
+    }
+
+    func testRequestBodyCarriesTheQuestionsInUse() throws {
+        let app = makeApp(FakeOllaya())
+        XCTAssertNil(app.requestBody, "no text yet")
+        app.text = "hi"
+        app.questions.removeLast()
+        let body = try XCTUnwrap(app.requestBody)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(object["model"] as? String, "laya:en")
+        XCTAssertEqual(object["state"] as? String, "hi")
+        XCTAssertEqual((object["questions"] as? [String: Any])?.count, 4)
+    }
+
+    func testAPinRestoresItsInput() async throws {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        await app.refreshModels()
+        app.model = "laya:en"
+        app.text = "first\nsecond line"
+        await waitUntil { !app.isUpdating }
+        app.pin()
+        let pin = try XCTUnwrap(app.pins.first)
+        XCTAssertEqual(pin.title, "first")
+        XCTAssertEqual(pin.setName, "Support ticket")
+        XCTAssertEqual(pin.rows.map(\.id), ["is_urgent", "churn_risk"])
+
+        app.model = "laya:multilingual"
+        app.preset = Preset.all[1]
+        app.text = "other"
+        app.restore(pin)
+        XCTAssertEqual(app.model, "laya:en")
+        XCTAssertEqual(app.preset.id, "triage")
+        XCTAssertFalse(app.isCustom)
+        XCTAssertEqual(app.text, "first\nsecond line")
+        await waitUntil { !app.isUpdating }
+        XCTAssertEqual(fake.calls.last?.state, "first\nsecond line")
+
+        app.unpin(pin)
+        XCTAssertTrue(app.pins.isEmpty)
+    }
+
+    func testAPinOfMyQuestionsRestoresThem() async throws {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        app.text = "hello"
+        app.questions.removeLast()
+        await waitUntil { !app.isUpdating }
+        app.pin()
+        let pin = try XCTUnwrap(app.pins.first)
+        XCTAssertEqual(pin.setName, "My questions")
+        app.preset = Preset.all[1]
+        app.restore(pin)
+        XCTAssertTrue(app.isCustom)
+        XCTAssertEqual(app.questions.count, 4)
+    }
+
+    func testNothingToPinWithoutAnAnswer() {
+        let app = makeApp(FakeOllaya())
+        app.pin()
+        XCTAssertTrue(app.pins.isEmpty)
+    }
 }

@@ -13,8 +13,24 @@ final class AppModel {
     let daemon: Daemon
     private(set) var models: [ModelInfo] = []
     var model: String? { didSet { if model != oldValue { run() } } }
-    var preset = Preset.all[0] { didSet { if preset != oldValue { result = nil; run() } } }
+    /// The question set in use when `isCustom` is false. Choosing a preset (even the one on screen)
+    /// leaves "My questions", which stay in memory for `useMyQuestions()`.
+    var preset = Preset.all[0] { didSet { if preset != oldValue || isCustom { usePreset() } } }
     var text = "" { didSet { if text != oldValue { run() } } }
+    /// The questions in use, in order: the preset's, or "My questions" once any is edited (spec §3.2).
+    var questions: [Question] {
+        get { currentQuestions }
+        set {
+            guard newValue != currentQuestions else { return }
+            currentQuestions = newValue
+            isCustom = true
+            run()
+        }
+    }
+    private(set) var isCustom = false
+    /// Validation messages by question id: from a 422's `detail[].loc` (spec §5), or a duplicate id.
+    private(set) var questionErrors: [String: String] = [:]
+    private(set) var pins: [Pin] = []
     private(set) var result: DecideResponse?
     private(set) var error: String?
     private(set) var isUpdating = false
@@ -32,6 +48,8 @@ final class AppModel {
     private let deleteModel: Delete
     private let debounce: Duration
     private var task: Task<Void, Never>?
+    private var currentQuestions = Question.parse(Preset.all[0].questions)
+    private var myQuestions: [Question]?   // kept while a preset is in use
     private var refreshes = 0
     private var pullTasks: [String: Task<Void, Never>] = [:]
 
@@ -46,10 +64,68 @@ final class AppModel {
         self.debounce = debounce
     }
 
-    /// The current answers, in the question set's order.
+    /// The current answers, in the questions' order.
     var rows: [ResultRow] {
         guard let result else { return [] }
-        return preset.questionIDs.compactMap { id in result.answers[id].map { ResultRow(id: id, answer: $0) } }
+        return currentQuestions.compactMap { q in result.answers[q.key].map { ResultRow(id: q.key, answer: $0) } }
+    }
+
+    /// The `/api/decide` body for the current input, for "Copy as curl".
+    var requestBody: Data? {
+        guard let model, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return try? OllayaClient.decideBody(model: model, state: text, questions: questionsJSON)
+    }
+
+    /// A preset is sent byte for byte; "My questions" are written in card order.
+    private var questionsJSON: Data {
+        isCustom ? Question.json(currentQuestions) : preset.questions
+    }
+
+    /// "My questions…" (spec §3.2): the set kept from before, or else a copy of the questions on screen.
+    func useMyQuestions() {
+        guard !isCustom else { return }
+        if let myQuestions { currentQuestions = myQuestions }
+        isCustom = true
+        result = nil
+        run()
+    }
+
+    func addQuestion() {
+        var n = questions.count + 1
+        while questions.contains(where: { $0.key == "question_\(n)" }) { n += 1 }
+        questions.append(Question(key: "question_\(n)", kind: .noul))
+    }
+
+    private func usePreset() {
+        if isCustom { myQuestions = currentQuestions }
+        isCustom = false
+        currentQuestions = Question.parse(preset.questions)
+        result = nil
+        run()
+    }
+
+    /// ⌘↩ (spec §3.2): keeps the input and its answers in the sidebar for this session.
+    func pin() {
+        guard let model, result != nil, !isUpdating else { return }
+        pins.insert(Pin(text: text, model: model, setName: isCustom ? "My questions" : preset.name,
+                        preset: preset, questions: isCustom ? currentQuestions : nil, rows: rows), at: 0)
+    }
+
+    /// Brings back a pin's model (if still installed), question set and text; the answers run again.
+    func restore(_ pin: Pin) {
+        if models.contains(where: { $0.name == pin.model }) { model = pin.model }
+        if let questions = pin.questions {
+            currentQuestions = questions
+            isCustom = true
+        } else {
+            preset = pin.preset
+        }
+        text = pin.text
+        run()
+    }
+
+    func unpin(_ pin: Pin) {
+        pins.removeAll { $0.id == pin.id }
     }
 
     /// Called when the engine is ready.
@@ -138,14 +214,16 @@ final class AppModel {
     /// Live results (spec §3.2): cancel the request in flight, wait for typing to pause, ask again.
     private func run() {
         task?.cancel()
-        guard let model, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let duplicates = Question.duplicateKeys(currentQuestions)
+        guard let model, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, duplicates.isEmpty else {
             task = nil
             isUpdating = false
             result = nil
             error = nil
+            questionErrors = Dictionary(uniqueKeysWithValues: duplicates.map { ($0, "Another question has the same id.") })
             return
         }
-        let text = text, questions = preset.questions
+        let text = text, questions = questionsJSON
         isUpdating = true
         task = Task {
             try? await Task.sleep(for: debounce)
@@ -155,12 +233,43 @@ final class AppModel {
                 guard !Task.isCancelled else { return }
                 result = response
                 error = nil
+                questionErrors = [:]
             } catch {
                 guard !Task.isCancelled else { return }
                 result = nil
-                self.error = error.localizedDescription
+                show(error)
             }
             isUpdating = false
         }
+    }
+
+    /// A 422's issues go to the question their `loc` names (spec §5); the rest, or any other error,
+    /// is shown above the answers.
+    private func show(_ error: Error) {
+        let issues = (error as? OllayaError)?.detail ?? []
+        var byQuestion: [String: String] = [:]
+        for issue in issues {
+            guard let id = issue.questionID else { continue }
+            byQuestion[id] = byQuestion[id].map { $0 + "\n" + issue.msg } ?? issue.msg
+        }
+        questionErrors = byQuestion
+        let other = issues.filter { $0.questionID == nil }.map(\.msg)
+        self.error = issues.isEmpty ? error.localizedDescription : other.isEmpty ? nil : other.joined(separator: "\n")
+    }
+}
+
+/// A pinned input and its answers (spec §3.2; in memory only, v1).
+struct Pin: Identifiable {
+    let id = UUID()
+    let text: String
+    let model: String            // the model picked, e.g. `laya:latest`
+    let setName: String          // "Support ticket", "My questions"
+    let preset: Preset
+    let questions: [Question]?   // "My questions" at the time; nil for a preset
+    let rows: [ResultRow]
+
+    /// The text's first line, for the sidebar.
+    var title: String {
+        text.split(whereSeparator: \.isNewline).first.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
     }
 }
