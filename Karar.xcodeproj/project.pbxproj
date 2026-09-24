@@ -182,7 +182,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\nsrc=\"$SRCROOT/vendor/ollaya\"\n[ -x \"$src/bin/ollaya\" ] || { echo \"error: run scripts/fetch-ollaya.sh first\"; exit 1; }\ninstall -m 755 \"$src/bin/ollaya\" \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya\"\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya\"\ncp \"$src/share/doc/ollaya/\"* \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/\"\n";
+			shellScript = "set -euo pipefail\nsrc=\"$SRCROOT/vendor/ollaya\"\n[ -x \"$src/bin/ollaya\" ] || { echo \"error: run scripts/fetch-ollaya.sh first\"; exit 1; }\ninstall -m 755 \"$src/bin/ollaya\" \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya\"\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" --options runtime --identifier io.github.omerhakanbilici.karar.ollaya \"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya\"\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya\"\ncp \"$src/share/doc/ollaya/\"* \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

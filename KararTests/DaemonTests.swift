@@ -97,6 +97,20 @@ final class DaemonTests: XCTestCase {
         XCTAssertEqual(engine.launches, 1, "no restart after stop()")
     }
 
+    func testConcurrentStartsLaunchOnlyOnce() async {
+        let engine = FakeEngine()
+        let daemon = makeDaemon(engine)
+        async let a: () = daemon.start()
+        async let b: () = daemon.start()
+        _ = await (a, b)
+        XCTAssertEqual(engine.launches, 1)
+        XCTAssertEqual(daemon.state, .running(owned: true))
+
+        await daemon.start()
+        XCTAssertEqual(engine.launches, 1, "start() while already running owned must not relaunch")
+        XCTAssertEqual(daemon.state, .running(owned: true))
+    }
+
     func testRetryAfterFailureStartsAgain() async {
         let engine = FakeEngine()
         engine.comesUp = false

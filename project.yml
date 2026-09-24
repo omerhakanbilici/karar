@@ -37,6 +37,7 @@ targets:
           src="$SRCROOT/vendor/ollaya"
           [ -x "$src/bin/ollaya" ] || { echo "error: run scripts/fetch-ollaya.sh first"; exit 1; }
           install -m 755 "$src/bin/ollaya" "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya"
+          codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime --identifier io.github.omerhakanbilici.karar.ollaya "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya"
           mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya"
           cp "$src/share/doc/ollaya/"* "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/"
   KararTests:

@@ -1,27 +1,37 @@
 import SwiftUI
 
-@main
-struct KararApp: App {
-    @State private var daemon: Daemon
+/// Owns the engine's lifecycle at the app level, not the window: it must survive window
+/// close/reopen and stop exactly once on quit.
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let daemon: Daemon
 
-    init() {
-        _daemon = State(initialValue: Daemon(
+    override init() {
+        daemon = Daemon(
             probe: { await OllayaClient.local.liveness() },
             launch: Daemon.bundledLaunch
-        ))
+        )
+        super.init()
     }
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests are hosted in the app; don't start a real engine under them.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        Task { await daemon.start() }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        daemon.stop()
+    }
+}
+
+@main
+struct KararApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            StatusView(daemon: daemon)
-                .task {
-                    // Unit tests are hosted in the app; don't start a real engine under them.
-                    guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-                    await daemon.start()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-                    daemon.stop()
-                }
+        Window("Karar", id: "main") {
+            StatusView(daemon: appDelegate.daemon)
         }
     }
 }

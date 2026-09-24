@@ -21,6 +21,7 @@ final class Daemon {
     private let readyTimeout: Duration
     private var terminate: (@MainActor () -> Void)?
     private var restarts = 0
+    private var starting = false
 
     init(probe: @escaping Probe, launch: @escaping Launch, readyTimeout: Duration = .seconds(10)) {
         self.probe = probe
@@ -29,6 +30,9 @@ final class Daemon {
     }
 
     func start() async {
+        guard !starting, terminate == nil else { return }
+        starting = true
+        defer { starting = false }
         restarts = 0
         state = .starting
         switch await probe() {
@@ -91,8 +95,11 @@ extension Daemon {
             .appending(path: "Logs/Karar")
         try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
         let logURL = logs.appending(path: "ollaya.log")
-        FileManager.default.createFile(atPath: logURL.path, contents: nil)   // fresh log per launch
+        if !FileManager.default.fileExists(atPath: logURL.path) {
+            FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        }
         let log = try FileHandle(forWritingTo: logURL)
+        try log.seekToEnd()   // append across launches/restarts instead of truncating
 
         let process = Process()
         process.executableURL = executable
