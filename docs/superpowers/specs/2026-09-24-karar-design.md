@@ -83,8 +83,10 @@ a custom domain for the website (added later with a `CNAME` file).
     corner with `usage.input_tokens` from the last `/api/decide` response ("118 tokens"), never a
     character-based estimate. Models have small context windows (`laya:en`: 512 tokens for text,
     questions and options together) and long text is cut silently, so the editor must not suggest
-    that any length works. When the response has `state_truncated: true`, the counter becomes a
-    warning in system orange: "Text too long for <model>: only the first part was read" (§5).
+    that any length works. The engine counts the text once per question, together with that
+    question's instructions and options, and sums over the questions (measured in Phase 4), so a
+    tooltip says so ("… counted once per question (5 questions)"). When the response has
+    `state_truncated: true`, the counter becomes a warning in system orange: "Text too long for <model>: only the first part was read" (§5).
   - Simple mode: one row per question, human label, answer in words ("Yes"/"No", the choice
     label, "1.8 / 3"), a bar, a percentage.
   - Advanced mode: each question is an editable card (id, type, instructions, criteria) showing the
@@ -137,7 +139,8 @@ Karar.app
 - **Language:** English only, no String Catalog in v1. SwiftUI `Text("…")` literals are already
   localizable keys, so adding languages later is a String Catalog plus translations, no code rewrite.
 - **Appearance:** system semantic colours only (`.primary`, `.secondary`, `.tint`, materials;
-  system orange only for the truncation warning in §3.2);
+  system orange only for the truncation warning in §3.2, system red only for a question card
+  with a validation error in §5);
   no custom palette, so light/dark follows macOS automatically.
 
 ## 5. Error handling

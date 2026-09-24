@@ -49,6 +49,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   resumes on Retry.
 
 - [ ] **Phase 4 — Advanced mode.**
+  Plan: [`2026-09-25-phase-4-advanced.md`](2026-09-25-phase-4-advanced.md)
   Advanced toggle (`@AppStorage`), editable question cards (choice / score / noul, add / remove),
   "My questions…", `.inspector` with routing, timings, tokens, response JSON, Copy JSON, Copy as
   curl; `422` `detail[].loc` marks the failing card; `state_truncated` note; ⌘↩ pins results to the
@@ -70,6 +71,10 @@ Plans are written at the start of their phase, not all up front, so they match t
   model fallback), About window (versions + licences, spec §3.3), app icon, empty states, keyboard
   shortcuts, light/dark check of every screen.
   *Acceptance:* each §5 situation reproduced by hand shows the specified UI.
+
+  *Also (user, Phase 4 session) — app icon:* a plain balance scale, slightly tilted (one pan a
+  little lower), no sword or blindfold; white on an orange background. An original drawing, not an
+  SF Symbol. Its orange need not match the in-app truncation warning's system orange.
 
 - [ ] **Phase 6 — Release: DMG, CI, repo docs, publish.**
   `scripts/make-dmg.sh` (always `Karar.dmg`), `scripts/smoke.sh`, `.github/workflows/release.yml`
@@ -161,3 +166,18 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   `OLLAYA_MODELS=<dir>` in Karar's environment reaches the child daemon, so tests never touch
   `~/.ollaya`. The user's CLI daemon was not running during Phase 3; earlier "adopted" daemons were
   Karar-started ones left running.
+- Phase 4, measured on the pinned engine (Karar's `vendor/ollaya` on `127.0.0.1:11436`, scratch
+  `OLLAYA_MODELS`): `usage.input_tokens` is **not** the text's length. Each question is encoded
+  separately as text + that question's instructions + its options + special tokens, and the counts
+  are summed over the questions (same text, one noul question: 48; the same question twice: 96;
+  adding option descriptions to a 2-option choice: 29 → 46; empty text: 32). After truncation it
+  is the **truncated** length: every question is capped at the model's context
+  (`model_info["laya.context_length"]` in `/api/show`: 512 for `laya:en`, 1,024 for
+  `laya:multilingual`), so a cut-off text on `laya:en` reports exactly 512 per question (1,024 for
+  two) with `state_truncated: true`; the original length is not reported anywhere. The router
+  `laya` sends long English text to `laya:en` even though `laya:multilingual` would read twice as
+  much. Decision (user): the counter shows the engine's number as is, and a tooltip explains that
+  it counts the text once per question, with the questions' instructions and options.
+- Phase 4: `/api/decide` answers compact JSON, and `JSONSerialization` pretty-printing both
+  reorders keys and prints `0.3237` as `0.32369999999999999`, so the inspector re-indents the
+  bytes instead. The `guard` preset's `topic` options have `null` descriptions.

@@ -26,7 +26,8 @@ open build/Build/Products/Debug/Karar.app
   `Karar.xcodeproj/project.pbxproj`; edit `project.yml`, run `xcodegen generate`, commit both.
   Source folders are synced folders: new files under `Karar/` or `KararTests/` need no project change.
 - No third-party Swift dependencies. SwiftUI + Foundation only; AppKit only where SwiftUI lacks it.
-- System semantic colours only (no custom palette) so light/dark is automatic.
+- System semantic colours only (no custom palette) so light/dark is automatic. The only
+  exceptions are in spec §4: system orange (truncation warning), system red (invalid question card).
 - UI is English only.
 - `vendor/` (the downloaded Ollaya) is never committed.
 - Bundle ID `io.github.omerhakanbilici.karar` never changes. Hardened Runtime stays on.
