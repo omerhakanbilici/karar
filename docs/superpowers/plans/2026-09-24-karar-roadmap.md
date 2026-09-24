@@ -29,7 +29,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   quitting Karar stops it; with a CLI `ollaya serve` already running, Karar adopts it and leaves it
   running on quit; a Release build is signed `adhoc,runtime`.
 
-- [ ] **Phase 2 — Decide: live results in the main window.**
+- [x] **Phase 2 — Decide: live results in the main window.**
   Plan: [`2026-09-24-phase-2-decide.md`](2026-09-24-phase-2-decide.md)
   `POST /api/decide` types + client method, bundled presets (`Presets/*.json`, copied from Ollaya
   `crates/ollaya/src/presets/` at the pinned version), `AppModel`, `NavigationSplitView` with
@@ -88,11 +88,29 @@ Plans are written at the start of their phase, not all up front, so they match t
   `Daemon` from there, never start it from a view.
 - The nested `ollaya` is re-signed in the embed script with `--options runtime` and runs fine under
   Hardened Runtime. Add `--timestamp` when moving to Developer ID.
-- The CLI daemon on this Mac (`/usr/local/bin/ollaya`) is also 0.3.2. Consider warning when an adopted
-  daemon's `/api/version` differs from the bundled one (Phase 2).
+- The CLI daemon on this Mac (`/usr/local/bin/ollaya`) is also 0.3.2. Since Phase 2 the sidebar caption
+  warns when the running engine's `/api/version` differs from `Contents/Resources/Ollaya/VERSION`.
 - Open for later: `liveness()` maps a 1 s `.timedOut` to `.other` (false "port in use", Phase 5);
   `StatusView` swallows `tags()` errors as "No models yet"; `ollaya.log` grows without rotation;
   `testConcurrentStartsLaunchOnlyOnce` doesn't exercise the in-flight half of the guard (fake probe
   never suspends).
-- Manual UI checks: Karar isn't AppleScriptable and the agent has no Accessibility access, so window
-  text has to be confirmed by the user by eye.
+- UI checks: Screen Recording is granted, so capture only Karar's window (never the full screen):
+  window id from `CGWindowListCopyWindowInfo` (owner "Karar", layer 0, widest), then
+  `screencapture -x -o -l <id>`. Typing into the app still needs the user (no Accessibility).
+- Latency (spec §9 risk 3), M1 Pro, CLI daemon 0.3.2, warm, median of 5, same English ticket:
+  5-question presets take 0.90–1.27 s on `laya:en` (and `laya`, which routes English to it) and
+  0.36–0.47 s on `laya:multilingual`; time is linear in the question count (~250 ms/question on
+  `laya:en`, ~90 ms on multilingual). A cold model adds 2.5–3.3 s (load), which also happens after
+  the default 5 m `keep_alive` expires. So results arrive 0.4–1.3 s after typing pauses, not the
+  < 150 ms the spec assumed; the 300 ms debounce + cancel still works, with a spinner and dimmed rows.
+  Cancelling a request that is already running does not stop its forward pass (api.md §10), so a
+  burst of edits can wait for one extra pass. Consider a longer `keep_alive` or a preload on model
+  selection if cold starts annoy (Phase 5).
+- Presets: question order matters and JSONDecoder loses key order, so `Preset.topLevelKeys` scans it
+  and the request body splices the preset bytes verbatim. `DecideResponse` must be decoded without
+  `.convertFromSnakeCase` (it would rename `is_urgent` in `answers`).
+- Deferred from Phase 2 reviews: `Answer.legend` is `[String: String]?`, but score levels may be
+  objects/arrays in custom questions (Phase 4); a stale error stays after an automatic engine
+  restart until the next edit (Phase 5); concurrent `refreshModels()` calls can finish out of order,
+  and "No models yet" flashes before the first refresh (Phase 3); the engine version is read in
+  `MainView`, not through `AppModel`.
