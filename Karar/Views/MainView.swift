@@ -22,13 +22,31 @@ struct MainView: View {
             detail
         }
         .toolbar {
-            ToolbarItemGroup {
-                Picker("Model", selection: $app.model) {
-                    ForEach(app.models, id: \.name) { Text($0.name).tag(Optional($0.name)) }
+            ToolbarItem {
+                Menu {
+                    Picker("Model", selection: $app.model) {
+                        ForEach(app.models, id: \.name) { Text($0.name).tag(Optional($0.name)) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } label: {
+                    Label(app.model ?? "No model", systemImage: "cpu")
+                        .labelStyle(.titleAndIcon)
                 }
-                Picker("Question set", selection: $app.preset) {
-                    ForEach(Preset.all) { Text($0.name).tag($0) }
+                .help("Model")
+            }
+            ToolbarItem {
+                Menu {
+                    Picker("Question set", selection: $app.preset) {
+                        ForEach(Preset.all) { Text($0.name).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } label: {
+                    Label(app.preset.name, systemImage: "list.bullet.rectangle")
+                        .labelStyle(.titleAndIcon)
                 }
+                .help("Question set")
             }
         }
         .frame(minWidth: 720, minHeight: 480)
@@ -60,10 +78,9 @@ struct MainView: View {
                                        description: Text("Run `ollaya pull laya` in Terminal, then come back to Karar."))
             } else {
                 VStack(spacing: 0) {
-                    TextEditor(text: $app.text)
-                        .font(.body)
-                        .padding(8)
-                        .frame(minHeight: 120, idealHeight: 160, maxHeight: 240)
+                    editor
+                        .padding([.horizontal, .top], 20)
+                        .padding(.bottom, 16)
                     Divider()
                     results
                 }
@@ -71,41 +88,68 @@ struct MainView: View {
         }
     }
 
+    private var editor: some View {
+        TextEditor(text: $app.text)
+            .font(.body)
+            .scrollContentBackground(.hidden)
+            .padding(10)
+            .background(Color(nsColor: .textBackgroundColor), in: .rect(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+            .overlay(alignment: .topLeading) {
+                if app.text.isEmpty {
+                    Text(app.preset.hint)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 15)   // 10 pt padding + the editor's 5 pt line-fragment inset
+                        .padding(.vertical, 10)
+                        .allowsHitTesting(false)
+                }
+            }
+            .frame(minHeight: 120, idealHeight: 160, maxHeight: 240)
+    }
+
     private var results: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if let error = app.error {
-                    Label(error, systemImage: "exclamationmark.triangle")
+            VStack(alignment: .leading, spacing: 14) {
+                if app.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Answers appear here as you type.")
                         .foregroundStyle(.secondary)
-                } else if app.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Type or paste text above to see the answers.")
-                        .foregroundStyle(.secondary)
-                }
-                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-                    ForEach(app.rows) { row in
-                        GridRow {
-                            Text(row.label).foregroundStyle(.secondary)
-                            Text(row.answer).bold()
-                            ProgressView(value: row.sureness).frame(width: 120)
-                            Text(row.sureness, format: .percent.precision(.fractionLength(0)))
+                } else {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Answers").font(.headline)
+                        Spacer()
+                        if app.isUpdating {
+                            ProgressView().controlSize(.small)
+                        } else if let result = app.result {
+                            Text("\(result.model) · \(result.totalDuration / 1_000_000) ms")
+                                .font(.caption)
                                 .monospacedDigit()
+                                .foregroundStyle(.secondary)
                         }
                     }
-                }
-                .opacity(app.isUpdating ? 0.5 : 1)
-                if let result = app.result {
-                    Text("Answered by \(result.model) in \(result.totalDuration / 1_000_000) ms")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if let error = app.error {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.secondary)
+                    }
+                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+                        ForEach(app.rows) { row in
+                            GridRow {
+                                Text(row.label).foregroundStyle(.secondary)
+                                Text(row.answer).bold()
+                                ProgressView(value: row.sureness)
+                                    .frame(minWidth: 120, maxWidth: 240)
+                                Text("\(Int((row.sureness * 100).rounded()))%")
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                                    .gridColumnAlignment(.trailing)
+                            }
+                        }
+                    }
+                    .opacity(app.isUpdating ? 0.5 : 1)
+                    .animation(.default, value: app.rows)
                 }
             }
-            .padding()
+            .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .overlay(alignment: .topTrailing) {
-            if app.isUpdating {
-                ProgressView().controlSize(.small).padding()
-            }
         }
     }
 

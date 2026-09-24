@@ -9,6 +9,7 @@ final class PresetTests: XCTestCase {
             let object = try XCTUnwrap(JSONSerialization.jsonObject(with: preset.questions) as? [String: Any], preset.id)
             XCTAssertEqual(Set(preset.questionIDs), Set(object.keys), preset.id)
             XCTAssertEqual(preset.questionIDs.count, object.count, preset.id)
+            XCTAssertFalse(preset.hint.isEmpty, preset.id)
         }
     }
 
