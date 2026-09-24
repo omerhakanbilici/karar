@@ -94,6 +94,13 @@ private struct DownloadRow: View {
 
     private func downloading(_ download: Download) -> some View {
         VStack(alignment: .leading, spacing: 4) {
+            // A placeholder space when the speed isn't known yet (or the download is verifying)
+            // keeps this line's height, so the row never grows or shrinks between states.
+            Text(speedCaption(download))
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             HStack(spacing: 8) {
                 ProgressView(value: download.fraction)
                     .frame(maxWidth: .infinity)
@@ -114,11 +121,19 @@ private struct DownloadRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func isVerifying(_ download: Download) -> Bool {
+        download.parts.allSatisfy { $0.total > 0 && $0.completed >= $0.total } && !download.isFinished
+    }
+
+    private func speedCaption(_ download: Download) -> String {
+        guard !isVerifying(download), let speed = download.bytesPerSecond, speed > 0 else { return " " }
+        return ByteCountFormatter.string(fromByteCount: Int64(speed), countStyle: .file) + "/s"
+    }
+
     /// A one-line, near-constant-length stand-in for `DownloadCaption` in the sheet row: the
     /// full per-part caption's changing byte counts made the row jump while a download ran.
     private func compactCaption(_ download: Download) -> String {
-        let allDone = download.parts.allSatisfy { $0.total > 0 && $0.completed >= $0.total }
-        if allDone && !download.isFinished { return "Verifying…" }
+        if isVerifying(download) { return "Verifying…" }
         guard let speed = download.bytesPerSecond, speed > 0 else { return "Waiting…" }
         let percent = Int(download.fraction * 100)
         let remaining = download.parts.reduce(Int64(0)) { $0 + max($1.total - $1.completed, 0) }
