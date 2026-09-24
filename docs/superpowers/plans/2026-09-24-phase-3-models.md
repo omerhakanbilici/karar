@@ -80,7 +80,7 @@ show the user.
 
   | Name | Bytes | Languages | License (from the manifest's license blob) |
   |---|---|---|---|
-  | `laya` (router → `laya:en`, `laya:multilingual`) | 1,538,806,952 | 100+ languages | Apache-2.0 |
+  | `laya` (router → `laya:en`, `laya:multilingual`) | 1,537,806,952 | 100+ languages | Apache-2.0 |
   | `laya:multilingual` (mmBERT-base, 322M) | 684,161,400 | 100+ languages | Apache-2.0 |
   | `laya:en` (ModernBERT-large, 421M) | 853,634,822 | English | Apache-2.0 |
   | `laya:typed-decisions` (ModernBERT-large) | 853,527,607 | English | Apache-2.0 |
@@ -344,7 +344,7 @@ order from the `laya:latest` router blob: english → `laya:en`, multilingual �
 ```json
 [
   {"name": "laya", "summary": "Picks the English or the multilingual Laya model for each text. Fast.",
-   "languages": "100+ languages", "license": "Apache-2.0", "size": 1538806952, "recommended": true,
+   "languages": "100+ languages", "license": "Apache-2.0", "size": 1537806952, "recommended": true,
    "includes": ["laya:en", "laya:multilingual"]},
   {"name": "laya:multilingual", "summary": "Laya on mmBERT-base (322M parameters).",
    "languages": "100+ languages", "license": "Apache-2.0", "size": 684161400, "recommended": false, "includes": []},
