@@ -40,6 +40,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   this Mac measured and written into "Notes" (spec §9 risk 3).
 
 - [ ] **Phase 3 — Models: download, delete, onboarding.**
+  Plan: [`2026-09-24-phase-3-models.md`](2026-09-24-phase-3-models.md)
   `POST /api/pull` NDJSON stream → `AsyncThrowingStream`, `DELETE /api/delete`, `Catalog.json`,
   "Download model…" sheet, onboarding flow (spec §3.1) shown when no model is installed, sample
   ticket prefilled after first download.
