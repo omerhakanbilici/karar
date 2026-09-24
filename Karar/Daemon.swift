@@ -85,6 +85,12 @@ final class Daemon {
 }
 
 extension Daemon {
+    /// The pinned Ollaya version inside the app ("v0.3.2"), copied from vendor/ollaya/VERSION.
+    nonisolated static let bundledVersion: String =
+        Bundle.main.url(forResource: "VERSION", withExtension: nil, subdirectory: "Ollaya")
+            .flatMap { try? String(contentsOf: $0, encoding: .utf8) }?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
     /// Starts `Contents/MacOS/ollaya serve`, logging to ~/Library/Logs/Karar/ollaya.log.
     // ponytail: if Karar crashes the daemon is orphaned; the next launch adopts it and never stops it.
     static func bundledLaunch(onExit: @escaping @Sendable (Int32) -> Void) throws -> @MainActor () -> Void {

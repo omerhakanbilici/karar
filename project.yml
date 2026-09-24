@@ -40,6 +40,7 @@ targets:
           codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime --identifier io.github.omerhakanbilici.karar.ollaya "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya"
           mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya"
           cp "$src/share/doc/ollaya/"* "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/"
+          cp "$src/VERSION" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/VERSION"
   KararTests:
     type: bundle.unit-test
     platform: macOS

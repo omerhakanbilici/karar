@@ -7,4 +7,8 @@ final class SmokeTests: XCTestCase {
         let ollaya = try XCTUnwrap(Bundle.main.url(forAuxiliaryExecutable: "ollaya"))
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: ollaya.path), ollaya.path)
     }
+
+    func testBundledOllayaVersionIsReadable() {
+        XCTAssertTrue(Daemon.bundledVersion.hasPrefix("v"), Daemon.bundledVersion)
+    }
 }
