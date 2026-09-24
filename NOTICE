@@ -1,0 +1,10 @@
+Karar — a Mac app for Ollaya
+Copyright 2026 Ömer Hakan Bilici
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product bundles Ollaya (https://github.com/ollaya-dev/ollaya),
+licensed under the Apache License, Version 2.0. Ollaya's own licence and
+third-party notices ship inside the app at Contents/Resources/Ollaya/.
+
+Karar is not affiliated with or endorsed by the Ollaya project.
