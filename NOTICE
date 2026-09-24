@@ -7,4 +7,7 @@ This product bundles Ollaya (https://github.com/ollaya-dev/ollaya),
 licensed under the Apache License, Version 2.0. Ollaya's own licence and
 third-party notices ship inside the app at Contents/Resources/Ollaya/.
 
+The question sets in Karar/Presets/ are copied from Ollaya v0.3.2
+(crates/ollaya/src/presets/), licensed under the Apache License, Version 2.0.
+
 Karar is not affiliated with or endorsed by the Ollaya project.
