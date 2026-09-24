@@ -59,6 +59,10 @@ struct MainView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         } detail: {
             detail
+                // Give NavigationSplitView an explicit, generous idea of this column's width once
+                // Advanced is on (`.inspector` splits *inside* it, below) instead of leaving it to
+                // negotiate purely from content — see the note on `.frame(minWidth:)` below for why.
+                .navigationSplitViewColumnWidth(min: advanced ? 300 : 260, ideal: advanced ? 700 : 400)
         }
         .toolbar {
             ToolbarItem {
@@ -119,7 +123,14 @@ struct MainView: View {
                 .help("Edit the questions and inspect the response")
             }
         }
-        .frame(minWidth: 720, minHeight: 480)
+        // Bisected empirically (not just computed): below ~960–980 pt of total window width with
+        // Advanced on, `.inspector`'s own column negotiation cannot settle regardless of what the
+        // cards contain — even a placeholder in place of the real cards still aborts the same way
+        // below that width, so this is a window-size floor, not a content-size one. 1050 keeps a
+        // safety margin above the measured threshold. AppKit enforces this for every window of this
+        // kind going forward, including one restored from a frame saved by an older build (that's
+        // the scenario the 720/900 pt checks below cover).
+        .frame(minWidth: advanced ? 1050 : 720, minHeight: 480)
         .sheet(isPresented: $showsDownloadSheet) {
             DownloadSheet(app: app)
         }

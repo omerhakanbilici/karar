@@ -43,12 +43,17 @@ struct InspectorView: View {
                     .disabled(app.requestBody == nil)
                 }
                 if let result = app.result {
-                    Text(OrderedJSON.pretty(result.json))
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                        .background(.quinary, in: .rect(cornerRadius: 6))
+                    // Horizontal scroll, not line-wrap: a wrapped long JSON string (a criteria
+                    // description, say) reads as broken text at the left edge instead of one line.
+                    ScrollView(.horizontal) {
+                        Text(OrderedJSON.pretty(result.json))
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(8)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.quinary, in: .rect(cornerRadius: 6))
                 }
             }
             .padding(16)
