@@ -55,7 +55,9 @@ struct OllayaClient: Sendable {
         request.httpBody = try Self.decideBody(model: model, state: state, questions: questions)
         let (data, response) = try await Self.session.data(for: request)
         try Self.check(response, data)
-        return try JSONDecoder().decode(DecideResponse.self, from: data)
+        var decoded = try JSONDecoder().decode(DecideResponse.self, from: data)
+        decoded.json = data
+        return decoded
     }
 
     /// The questions are spliced in as raw bytes so their key order (question order, criteria
@@ -78,6 +80,13 @@ struct OllayaClient: Sendable {
         var text = text
         while text.last?.isNewline == true { text.removeLast() }
         return try JSONEncoder().encode(text)
+    }
+
+    /// The request as a Terminal command (inspector's "Copy as curl"). The body goes in single
+    /// quotes, so only `'` needs escaping.
+    func curl(body: Data) -> String {
+        let quoted = String(decoding: body, as: UTF8.self).replacingOccurrences(of: "'", with: #"'\''"#)
+        return "curl \(base.appending(path: "api/decide").absoluteString) -d '\(quoted)'"
     }
 
     /// `POST /api/pull` as a stream of progress lines. Cancelling the consumer closes the

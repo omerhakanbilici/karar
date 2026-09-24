@@ -5,7 +5,7 @@ final class ResultRowTests: XCTestCase {
     private func answer(_ type: String, choice: String? = nil, score: Double? = nil, noul: Double? = nil,
                         confidence: Double? = nil, levels: Int? = nil) -> Answer {
         Answer(type: type, choice: choice, score: score, noul: noul, confidence: confidence,
-               legend: levels.map { n in Dictionary(uniqueKeysWithValues: (0..<n).map { ("\($0)", "level \($0)") }) })
+               probabilities: levels.map { n in Dictionary(uniqueKeysWithValues: (0..<n).map { ("\($0)", 1 / Double(n)) }) })
     }
 
     func testNoulSaysYesOrNoWithTheProbabilityOfThatAnswer() {

@@ -17,7 +17,7 @@ struct ResultRow: Identifiable, Equatable {
             answer = p >= 0.5 ? "Yes" : "No"
             sureness = max(p, 1 - p)
         case "score":
-            let top = max((a.legend?.count ?? 2) - 1, 1)
+            let top = max((a.probabilities?.count ?? 2) - 1, 1)
             answer = String(format: "%.1f / %d", a.score ?? 0, top)
             sureness = a.confidence ?? 0
         default:   // "choice", and any type a newer Ollaya adds

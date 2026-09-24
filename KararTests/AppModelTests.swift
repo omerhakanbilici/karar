@@ -18,7 +18,7 @@ final class FakeOllaya {
         calls.append((model, state, questions))
         try await Task.sleep(for: delay)   // throws CancellationError when cancelled, like URLSession
         if let failure { throw failure }
-        let yes = Answer(type: "noul", choice: nil, score: nil, noul: 0.9, confidence: nil, legend: nil)
+        let yes = Answer(type: "noul", choice: nil, score: nil, noul: 0.9, confidence: nil, probabilities: nil)
         return DecideResponse(model: state, answers: ["churn_risk": yes, "is_urgent": yes], totalDuration: 1)
     }
 

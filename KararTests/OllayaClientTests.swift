@@ -96,7 +96,13 @@ final class OllayaClientTests: XCTestCase {
         XCTAssertEqual(r.answers["department"]?.choice, "billing")
         XCTAssertEqual(r.answers["department"]?.confidence, 0.7781)
         XCTAssertEqual(r.answers["urgency"]?.score, 1.1982)
-        XCTAssertEqual(r.answers["urgency"]?.legend?.count, 3)
+        XCTAssertEqual(r.answers["urgency"]?.probabilities?.count, 3)
+        XCTAssertEqual(r.usage?.inputTokens, 118)
+        XCTAssertEqual(r.routing?.route, "english")
+        XCTAssertEqual(r.routing?.reason, "English Latin text")
+        XCTAssertEqual(r.stateTruncated, false)
+        XCTAssertEqual(r.evalDuration, 16_302_117)
+        XCTAssertEqual(r.loadDuration, 0)
         XCTAssertEqual(r.answers["refund"]?.type, "noul")
         XCTAssertEqual(r.answers["refund"]?.noul, 0.9127)
         XCTAssertNil(r.answers["refund"]?.confidence)
@@ -188,5 +194,51 @@ final class OllayaClientTests: XCTestCase {
         XCTAssertThrowsError(try OllayaClient.checkDelete(busy, Data(#"{"error":"laya:en is being pulled","code":"OPERATION_IN_PROGRESS"}"#.utf8))) {
             XCTAssertEqual(($0 as? OllayaError)?.code, "OPERATION_IN_PROGRESS")
         }
+    }
+
+    func testDecodesATruncatedResponseWithoutARouter() throws {
+        let json = #"""
+        {"model": "laya:en", "answers": {}, "usage": {"input_tokens": 512, "output_tokens": 0},
+         "routing": null, "state_truncated": true, "total_duration": 1, "eval_duration": 1}
+        """#
+        let r = try JSONDecoder().decode(DecideResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(r.usage?.inputTokens, 512)
+        XCTAssertEqual(r.stateTruncated, true)
+        XCTAssertNil(r.routing)
+    }
+
+    func testAValidationErrorNamesItsQuestions() throws {
+        // Recorded from the pinned engine (docs/api.md §4.4), plus a state issue.
+        let body = Data(#"""
+        {"error":"state: Field required; questions.q.score.criteria: List should have at least 2 items after validation, not 1; questions.a b.choice.criteria: Dictionary should have at least 2 items after validation, not 0","code":"INVALID_REQUEST","detail":[{"loc":["body","state"],"msg":"Field required","type":"missing"},{"loc":["body","questions","q","score","criteria"],"msg":"List should have at least 2 items after validation, not 1","type":"too_short","ctx":{"field_type":"List","min_length":2,"actual_length":1}},{"loc":["body","questions","a b","choice","criteria"],"msg":"Dictionary should have at least 2 items after validation, not 0","type":"too_short","ctx":{"field_type":"Dictionary","min_length":2,"actual_length":0}}]}
+        """#.utf8)
+        let response = HTTPURLResponse(url: URL(string: "http://x")!, statusCode: 422, httpVersion: nil, headerFields: nil)!
+        XCTAssertThrowsError(try OllayaClient.check(response, body)) { error in
+            let detail = (error as? OllayaError)?.detail ?? []
+            XCTAssertEqual(detail.map(\.questionID), [nil, "q", "a b"])
+            XCTAssertEqual(detail[1].msg, "List should have at least 2 items after validation, not 1")
+            XCTAssertEqual(detail[1].loc, [.key("body"), .key("questions"), .key("q"), .key("score"), .key("criteria")])
+        }
+    }
+
+    func testAnIndexInALocIsAnInt() throws {
+        let issue = try JSONDecoder().decode(OllayaError.Issue.self, from: Data(#"{"loc": ["body", "questions", "1", 0], "msg": "x"}"#.utf8))
+        XCTAssertEqual(issue.loc, [.key("body"), .key("questions"), .key("1"), .index(0)])
+        XCTAssertEqual(issue.questionID, "1")
+    }
+
+    func testCurlQuotesTheBodyForTheShell() throws {
+        let body = try OllayaClient.decideBody(model: "laya", state: "It's \"late\"\nand $HOME `x`", questions: Data(#"{"q": {"type": "noul"}}"#.utf8))
+        let command = OllayaClient.local.curl(body: body)
+        XCTAssertTrue(command.hasPrefix("curl http://127.0.0.1:11435/api/decide -d '"), command)
+        // A shell function named curl prints the -d argument, so this checks what a shell really passes.
+        let shell = Process()
+        shell.executableURL = URL(fileURLWithPath: "/bin/sh")
+        shell.arguments = ["-c", "curl() { printf %s \"$3\"; }; " + command]
+        let out = Pipe()
+        shell.standardOutput = out
+        try shell.run()
+        shell.waitUntilExit()
+        XCTAssertEqual(out.fileHandleForReading.readDataToEndOfFile(), body)
     }
 }
