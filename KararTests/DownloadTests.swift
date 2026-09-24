@@ -67,4 +67,23 @@ final class DownloadTests: XCTestCase {
         let expected = 853_634_822.0 / Double(853_634_822 + 684_161_400)
         XCTAssertEqual(d.fraction, expected, accuracy: 0.0001)
     }
+
+    func testABlobSharedByTwoModelsCountsInBothButAddsNoSpeed() throws {
+        var d = Download(for: try XCTUnwrap(CatalogEntry.named("laya")))
+        d.apply(manifest(), at: t0)                              // router manifest
+        d.apply(manifest(), at: t0)                              // laya:en manifest
+        d.apply(layer("w", 100_000_000, 0), at: t0)             // fresh blob, starting at 0
+        d.apply(layer("w", 100_000_000, 50_000_000), at: t0.addingTimeInterval(1))  // halfway (baseline = 50M)
+        d.apply(layer("l", 10_297, 10_297), at: t0.addingTimeInterval(1))             // shared blob, complete
+        d.apply(layer("w", 100_000_000, 100_000_000), at: t0.addingTimeInterval(2))  // "w" complete
+        d.apply(manifest(), at: t0.addingTimeInterval(2))       // laya:multilingual manifest (marks laya:en done)
+        d.apply(layer("l", 10_297, 10_297), at: t0.addingTimeInterval(2)) // same blob in laya:multilingual
+
+        // Both parts include the shared blob in completed
+        XCTAssertEqual(d.parts[0].completed, 100_010_297)  // "w" (100M) + "l" (10297)
+        XCTAssertEqual(d.parts[1].completed, 10_297)       // "l" only
+
+        // Speed is based on "w" only: 50M fresh bytes (from 50M to 100M) in 1s = 50M/s
+        XCTAssertEqual(try XCTUnwrap(d.bytesPerSecond), 50_000_000, accuracy: 1)
+    }
 }
