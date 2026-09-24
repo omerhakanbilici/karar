@@ -3,7 +3,6 @@ import SwiftUI
 /// The main window (spec §3.2): installed models in the sidebar, the text on top, answers below.
 struct MainView: View {
     @Bindable var app: AppModel
-    @State private var engineVersion = ""
 
     var body: some View {
         NavigationSplitView {
@@ -52,8 +51,7 @@ struct MainView: View {
         .frame(minWidth: 720, minHeight: 480)
         .task(id: app.daemon.state) {
             guard case .running = app.daemon.state else { return }
-            await app.refreshModels()
-            engineVersion = (try? await OllayaClient.local.version()) ?? ""
+            await app.connect()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task { await app.refreshModels() }
@@ -73,7 +71,9 @@ struct MainView: View {
                 Button("Retry") { Task { await app.daemon.start() } }
             }
         case .running:
-            if app.models.isEmpty {
+            if !app.modelsLoaded {
+                ProgressView()
+            } else if app.models.isEmpty {
                 ContentUnavailableView("No models yet", systemImage: "shippingbox",
                                        description: Text("Run `ollaya pull laya` in Terminal, then come back to Karar."))
             } else {
@@ -154,10 +154,10 @@ struct MainView: View {
     }
 
     @ViewBuilder private var engineStatus: some View {
-        if case .running(let owned) = app.daemon.state, !engineVersion.isEmpty {
+        if case .running(let owned) = app.daemon.state, !app.engineVersion.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ollaya \(engineVersion) · \(owned ? "started by Karar" : "already running")")
-                if !Daemon.bundledVersion.isEmpty, "v\(engineVersion)" != Daemon.bundledVersion {
+                Text("Ollaya \(app.engineVersion) · \(owned ? "started by Karar" : "already running")")
+                if !Daemon.bundledVersion.isEmpty, "v\(app.engineVersion)" != Daemon.bundledVersion {
                     Label("Karar was built for Ollaya \(Daemon.bundledVersion)", systemImage: "exclamationmark.triangle")
                 }
             }

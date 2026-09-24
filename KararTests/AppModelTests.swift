@@ -7,6 +7,10 @@ final class FakeOllaya {
     var delay: Duration = .zero
     var failure: Error?
     var installed = ["laya:en", "laya:multilingual"]
+    var tagsDelays: [Duration] = []    // one per call, in call order; missing = no delay
+    var pulls: [String: AsyncThrowingStream<PullProgress, Error>.Continuation] = [:]
+    var deleted: [String] = []
+    var deleteFailure: Error?
 
     /// Answers every triage question; the response's `model` echoes the state so tests can tell
     /// which request produced the visible result.
@@ -19,7 +23,24 @@ final class FakeOllaya {
     }
 
     func tags() async throws -> [ModelInfo] {
-        installed.map { ModelInfo(name: $0, size: 1, details: .init(format: "onnx", family: "laya", parameterSize: "")) }
+        let snapshot = installed
+        let delay = tagsDelays.isEmpty ? .zero : tagsDelays.removeFirst()
+        try await Task.sleep(for: delay)
+        return snapshot.map { ModelInfo(name: $0, size: 1, details: .init(format: "onnx", family: "laya", parameterSize: "")) }
+    }
+
+    func version() async throws -> String { "0.3.2" }
+
+    func pull(_ model: String) -> AsyncThrowingStream<PullProgress, Error> {
+        let (stream, continuation) = AsyncThrowingStream.makeStream(of: PullProgress.self, throwing: Error.self)
+        pulls[model] = continuation
+        return stream
+    }
+
+    func delete(_ model: String) async throws {
+        if let deleteFailure { throw deleteFailure }
+        deleted.append(model)
+        installed.removeAll { $0 == model }
     }
 }
 
@@ -27,9 +48,14 @@ final class FakeOllaya {
 final class AppModelTests: XCTestCase {
     private func makeApp(_ fake: FakeOllaya) -> AppModel {
         let daemon = Daemon(probe: { .none }, launch: { _ in {} })
-        let app = AppModel(daemon: daemon, decide: fake.decide, tags: fake.tags, debounce: .milliseconds(50))
+        let app = AppModel(daemon: daemon, decide: fake.decide, tags: fake.tags, version: fake.version,
+                           pull: fake.pull, delete: fake.delete, debounce: .milliseconds(50))
         app.model = "laya:en"
         return app
+    }
+
+    private func line(_ status: String, _ digest: String? = nil, _ total: Int64? = nil, _ completed: Int64? = nil) -> PullProgress {
+        PullProgress(status: status, digest: digest, total: total, completed: completed)
     }
 
     private func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
@@ -124,5 +150,110 @@ final class AppModelTests: XCTestCase {
         fake.installed = ["laya:en"]
         await app.refreshModels()
         XCTAssertEqual(app.model, "laya:en")
+    }
+
+    func testTheNewestRefreshWins() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        fake.tagsDelays = [.milliseconds(300), .zero]
+        let slow = Task { await app.refreshModels() }          // sees the old list, answers last
+        try? await Task.sleep(for: .milliseconds(50))
+        fake.installed = ["laya:multilingual"]
+        await app.refreshModels()
+        await slow.value
+        XCTAssertEqual(app.models.map(\.name), ["laya:multilingual"])
+    }
+
+    func testModelsAreNotLoadedUntilTheFirstRefresh() async {
+        let fake = FakeOllaya()
+        fake.installed = []
+        let app = makeApp(fake)
+        XCTAssertFalse(app.modelsLoaded)
+        XCTAssertFalse(app.isOnboarding)
+        await app.connect()
+        XCTAssertTrue(app.modelsLoaded)
+        XCTAssertTrue(app.isOnboarding, "no model installed: onboarding")
+        XCTAssertEqual(app.engineVersion, "0.3.2")
+    }
+
+    func testADownloadFoldsProgressAndRefreshesOnSuccess() async throws {
+        let fake = FakeOllaya()
+        fake.installed = []
+        let app = makeApp(fake)
+        await app.connect()
+        let entry = try XCTUnwrap(CatalogEntry.named("laya:multilingual"))
+        app.download(entry)
+        await waitUntil { fake.pulls[entry.name] != nil }
+        let pull = try XCTUnwrap(fake.pulls[entry.name])
+        pull.yield(line("pulling manifest"))
+        pull.yield(line("pulling w", "sha256:w", 1000, 250))
+        await waitUntil { app.downloads[entry.name]?.parts.first?.completed == 250 }
+        fake.installed = ["laya:multilingual"]
+        pull.yield(line("success"))
+        pull.finish()
+        await waitUntil { app.isInstalled(entry) }
+        XCTAssertEqual(app.downloads[entry.name]?.isFinished, true)
+        XCTAssertTrue(app.isOnboarding, "stays until Get started")
+    }
+
+    func testAFailedDownloadShowsTheErrorAndRetryStartsAgain() async throws {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        let entry = try XCTUnwrap(CatalogEntry.named("nli"))
+        app.download(entry)
+        await waitUntil { fake.pulls[entry.name] != nil }
+        fake.pulls[entry.name]?.finish(throwing: OllayaError(error: "The download was interrupted.", code: nil))
+        await waitUntil { app.downloads[entry.name]?.error != nil }
+        XCTAssertEqual(app.downloads[entry.name]?.error, "The download was interrupted.")
+        fake.pulls[entry.name] = nil
+        app.download(entry)                                   // Retry
+        XCTAssertNil(app.downloads[entry.name]?.error)
+        await waitUntil { fake.pulls[entry.name] != nil }
+    }
+
+    func testCancellingADownloadForgetsIt() async throws {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        let entry = try XCTUnwrap(CatalogEntry.named("gliclass"))
+        app.download(entry)
+        await waitUntil { fake.pulls[entry.name] != nil }
+        app.cancelDownload(entry)
+        await waitUntil { app.downloads[entry.name] == nil }
+    }
+
+    func testDeleteRemovesTheModelAndMovesTheSelection() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        await app.refreshModels()
+        await app.delete("laya:en")
+        XCTAssertEqual(fake.deleted, ["laya:en"])
+        XCTAssertEqual(app.models.map(\.name), ["laya:multilingual"])
+        XCTAssertEqual(app.model, "laya:multilingual")
+        XCTAssertNil(app.deleteError)
+    }
+
+    func testDeleteErrorsAreShown() async {
+        let fake = FakeOllaya()
+        fake.deleteFailure = OllayaError(error: "laya:en is being pulled", code: "OPERATION_IN_PROGRESS")
+        let app = makeApp(fake)
+        await app.delete("laya:en")
+        XCTAssertEqual(app.deleteError, "laya:en is being pulled")
+    }
+
+    func testGetStartedShowsASampleTicketWithTheNewModel() async throws {
+        let fake = FakeOllaya()
+        fake.installed = []
+        let app = makeApp(fake)
+        await app.connect()
+        fake.installed = ["laya:en", "laya:latest", "laya:multilingual"]
+        await app.refreshModels()
+        app.preset = Preset.all[2]
+        app.getStarted(with: try XCTUnwrap(CatalogEntry.named("laya")))
+        XCTAssertFalse(app.isOnboarding)
+        XCTAssertEqual(app.model, "laya:latest")
+        XCTAssertEqual(app.preset.id, "triage")
+        XCTAssertEqual(app.text, AppModel.sampleTicket)
+        await waitUntil { !app.isUpdating }
+        XCTAssertEqual(fake.calls.last?.state, AppModel.sampleTicket)
     }
 }

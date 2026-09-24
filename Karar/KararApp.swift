@@ -11,7 +11,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app = AppModel(
             daemon: Daemon(probe: { await client.liveness() }, launch: Daemon.bundledLaunch),
             decide: { try await client.decide(model: $0, state: $1, questions: $2) },
-            tags: { try await client.tags() }
+            tags: { try await client.tags() },
+            version: { try await client.version() },
+            pull: { client.pull(model: $0) },
+            delete: { try await client.delete(model: $0) }
         )
         super.init()
     }
