@@ -44,10 +44,15 @@ In:
 - Model management: download, delete.
 - English (default) and Turkish UI.
 - Automatic light/dark appearance.
-- Ad-hoc-signed DMG on GitHub Releases, built by GitHub Actions.
+- Ad-hoc-signed DMG on GitHub Releases, built by GitHub Actions. The asset is always named
+  `Karar.dmg` (no version in the file name), so
+  `https://github.com/omerhakanbilici/karar/releases/latest/download/Karar.dmg` always points to
+  the latest release.
+- Project website in `site/`, published with GitHub Pages at `omerhakanbilici.github.io/karar` (§8).
 
 Out (later, if needed): saved custom question sets, persistent history, `ollaya create` / Modelfiles,
-Developer ID signing + notarization, auto-update, other UI languages, Intel Macs, App Store.
+Developer ID signing + notarization, auto-update, other UI languages, Intel Macs, App Store,
+a custom domain for the website (added later with a `CNAME` file).
 
 ## 3. Screens
 
@@ -166,7 +171,9 @@ karar/
                 Views/, Catalog.json, Presets/*.json, Localizable.xcstrings, Assets.xcassets
   KararTests/
   scripts/      fetch-ollaya.sh, make-dmg.sh, smoke.sh
-  .github/workflows/release.yml   (tag v* → fetch Ollaya → build → DMG → GitHub Release)
+  .github/workflows/release.yml   (tag v* → fetch Ollaya → build → Karar.dmg → GitHub Release)
+  .github/workflows/pages.yml     (push to main touching site/** → actions/deploy-pages)
+  site/         index.html, style.css, screenshots (see §8)
   LICENSE       Apache-2.0
   NOTICE        "Includes Ollaya (https://github.com/ollaya-dev/ollaya), Apache-2.0"
   THIRD_PARTY.md  Ollaya licence text, bundled preset files, model licences
@@ -179,7 +186,31 @@ karar/
 - Model weights are never redistributed by Karar; Ollaya downloads them from the authors'
   Hugging Face repositories.
 
-## 8. Open risks
+## 8. Website
+
+`site/` in this repo, published by GitHub Pages at `https://omerhakanbilici.github.io/karar/`.
+
+- Plain `index.html` + `style.css`, no framework, no build step, no JavaScript needed.
+- English only. Light/dark follows `prefers-color-scheme` automatically.
+- Content, top to bottom:
+  1. Name, tagline ("Karar — a Mac app for Ollaya") and a one-paragraph intro.
+  2. A large **Download for Mac** button →
+     `https://github.com/omerhakanbilici/karar/releases/latest/download/Karar.dmg`, with
+     "Apple silicon · macOS 14+" underneath and an **All releases** link to `/releases`.
+  3. Screenshots of the main window, light and dark, via `<picture>` with a
+     `prefers-color-scheme` source, so each visitor sees the one that matches their theme.
+  4. **First launch** steps for Gatekeeper: open the DMG, drag Karar to Applications, open it, then
+     System Settings → Privacy & Security → **Open Anyway**.
+  5. Footer: Apache-2.0, "Built on Ollaya (Apache-2.0). Not affiliated with the Ollaya project.",
+     links to the repo and to ollaya.dev.
+- `.github/workflows/pages.yml`: on push to `main` with changes under `site/**` (plus
+  `workflow_dispatch`), `actions/upload-pages-artifact` with `path: site` then
+  `actions/deploy-pages`. Permissions: `pages: write`, `id-token: write`.
+- One-time repo setting: Settings → Pages → Source = **GitHub Actions**.
+- The download link only works once the first release exists. The release workflow must upload
+  the DMG under exactly `Karar.dmg`.
+
+## 9. Open risks
 
 1. Forcing English on a Turkish-language Mac (§4, Localization): verify first.
 2. Ollaya's macOS minimum version is undocumented upstream; check with `vtool -show-build` on the
