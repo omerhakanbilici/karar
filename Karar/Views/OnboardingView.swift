@@ -152,7 +152,7 @@ struct OnboardingView: View {
                       @ViewBuilder buttons: () -> some View) -> some View {
         VStack(spacing: 0) {
             content()
-                .frame(maxWidth: 480, maxHeight: .infinity, alignment: alignment)
+                .frame(maxWidth: 520, maxHeight: .infinity, alignment: alignment)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 24)
                 .padding(.top, 32)
