@@ -5,6 +5,7 @@ struct MainView: View {
     @Bindable var app: AppModel
     @State private var showsDownloadSheet = false
     @State private var modelPendingDelete: String?
+    @AppStorage("advanced") private var advanced = false
 
     var body: some View {
         NavigationSplitView {
@@ -77,13 +78,25 @@ struct MainView: View {
             }
             ToolbarItem {
                 Menu {
-                    Picker("Question set", selection: $app.preset) {
-                        ForEach(Preset.all) { Text($0.name).tag($0) }
+                    Picker("Question set", selection: Binding<Preset?>(
+                        get: { app.isCustom ? nil : app.preset },
+                        set: { choice in
+                            if let choice {
+                                app.preset = choice
+                            } else {
+                                app.useMyQuestions()
+                                advanced = true
+                            }
+                        }
+                    )) {
+                        ForEach(Preset.all) { Text($0.name).tag(Optional($0)) }
+                        Divider()
+                        Text("My questions…").tag(Preset?.none)
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
                 } label: {
-                    Label(app.preset.name, systemImage: "list.bullet.rectangle")
+                    Label(app.isCustom ? "My questions" : app.preset.name, systemImage: "list.bullet.rectangle")
                         .labelStyle(.titleAndIcon)
                 }
                 .help("Question set")
@@ -97,6 +110,13 @@ struct MainView: View {
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(app.result == nil || app.isUpdating)
                 .help("Pin the text and its answers to the sidebar (⌘↩)")
+            }
+            ToolbarItem {
+                Toggle(isOn: $advanced) {
+                    Label("Advanced", systemImage: "slider.horizontal.3")
+                }
+                .toggleStyle(.button)
+                .help("Edit the questions and inspect the response")
             }
         }
         .frame(minWidth: 720, minHeight: 480)
@@ -153,7 +173,11 @@ struct MainView: View {
                         .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30, alignment: .trailing)
                         .padding(.horizontal, 20)
                     Divider()
-                    results
+                    if advanced { cards } else { results }
+                }
+                .inspector(isPresented: $advanced) {
+                    InspectorView(app: app)
+                        .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
                 }
             }
         }
@@ -185,20 +209,13 @@ struct MainView: View {
                     Text("Answers appear here as you type.")
                         .foregroundStyle(.secondary)
                 } else {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Answers").font(.headline)
-                        Spacer()
-                        if app.isUpdating {
-                            ProgressView().controlSize(.small)
-                        } else if let result = app.result {
-                            Text(verbatim: "\(result.model) · \(result.totalDuration / 1_000_000) ms")
-                                .font(.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    answersHeader
                     if let error = app.error {
                         Label(error, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.secondary)
+                    }
+                    if !app.questionErrors.isEmpty {
+                        Label("Some questions are not valid. Turn on Advanced to see which.", systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.secondary)
                     }
                     Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
@@ -221,6 +238,49 @@ struct MainView: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Advanced mode (spec §3.2): each question is an editable card with its raw answer.
+    private var cards: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                answersHeader
+                if let error = app.error {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach($app.questions) { $question in
+                    QuestionCard(question: $question,
+                                 answer: app.result?.answers[question.key],
+                                 error: app.questionErrors[question.key]) {
+                        app.questions.removeAll { $0.id == question.id }
+                    }
+                }
+                .opacity(app.isUpdating ? 0.85 : 1)
+                Button {
+                    app.addQuestion()
+                } label: {
+                    Label("Add question", systemImage: "plus")
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var answersHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(advanced ? "Questions" : "Answers").font(.headline)
+            Spacer()
+            if app.isUpdating {
+                ProgressView().controlSize(.small)
+            } else if let result = app.result {
+                Text(verbatim: "\(result.model) · \(result.totalDuration / 1_000_000) ms")
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
