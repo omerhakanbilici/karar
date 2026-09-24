@@ -28,6 +28,31 @@ struct MainView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                 }
+                if !app.pins.isEmpty {
+                    Section("Pinned") {
+                        ForEach(app.pins) { pin in
+                            Button {
+                                app.restore(pin)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(pin.title)
+                                        .lineLimit(1)
+                                    Text(verbatim: "\(pin.setName) · \(pin.model)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(.rect)
+                            }
+                            .buttonStyle(.plain)
+                            .help(pin.rows.map { "\($0.label): \($0.answer)" }.joined(separator: "\n"))
+                            .contextMenu {
+                                Button("Remove") { app.unpin(pin) }
+                            }
+                        }
+                    }
+                }
             }
             .safeAreaInset(edge: .bottom) { engineStatus }
             .navigationSplitViewColumnWidth(min: 180, ideal: 220)
@@ -62,6 +87,16 @@ struct MainView: View {
                         .labelStyle(.titleAndIcon)
                 }
                 .help("Question set")
+            }
+            ToolbarItem {
+                Button {
+                    app.pin()
+                } label: {
+                    Label("Pin", systemImage: "pin")
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(app.result == nil || app.isUpdating)
+                .help("Pin the text and its answers to the sidebar (⌘↩)")
             }
         }
         .frame(minWidth: 720, minHeight: 480)
@@ -113,7 +148,10 @@ struct MainView: View {
                 VStack(spacing: 0) {
                     editor
                         .padding([.horizontal, .top], 20)
-                        .padding(.bottom, 16)
+                    // Fixed height: the counter appearing, changing or turning into the warning never moves the layout.
+                    tokenCounter
+                        .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30, alignment: .trailing)
+                        .padding(.horizontal, 20)
                     Divider()
                     results
                 }
@@ -184,6 +222,33 @@ struct MainView: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Spec §3.2: the engine's token count for the last answer, never an estimate; the warning in
+    /// system orange when the text was cut (§5).
+    @ViewBuilder private var tokenCounter: some View {
+        if let result = app.result, let tokens = result.usage?.inputTokens {
+            Group {
+                if result.stateTruncated == true {
+                    Label("Text too long for \(result.model): only the first part was read",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("\(tokens.formatted()) tokens")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .font(.caption)
+            .monospacedDigit()
+            .lineLimit(1)
+            .opacity(app.isUpdating ? 0.5 : 1)
+            .help(Self.tokenHelp(tokens: tokens, questions: result.answers.count))
+        }
+    }
+
+    static func tokenHelp(tokens: Int, questions: Int) -> String {
+        "\(tokens.formatted()) tokens read: your text plus each question's instructions and options, "
+            + "counted once per question (\(questions) \(questions == 1 ? "question" : "questions"))."
     }
 
     @ViewBuilder private var engineStatus: some View {

@@ -17,6 +17,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             delete: { try await client.delete(model: $0) }
         )
         super.init()
+        #if DEBUG
+        // UI checks without typing (no Accessibility): `-KararText "…"`, `-KararQuestions '{…}'`.
+        if let text = UserDefaults.standard.string(forKey: "KararText") { app.text = text }
+        if let json = UserDefaults.standard.string(forKey: "KararQuestions") { app.questions = Question.parse(Data(json.utf8)) }
+        #endif
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
