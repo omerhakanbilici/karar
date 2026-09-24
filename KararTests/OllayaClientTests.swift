@@ -53,4 +53,75 @@ final class OllayaClientTests: XCTestCase {
             XCTAssertEqual((error as? OllayaError)?.error, "HTTP 500")
         }
     }
+
+    func testDecodesDecideResponseFromTheAPIDoc() throws {
+        // docs/api.md §7.3, first DecideResponse example (router), verbatim.
+        let json = #"""
+        {
+          "model": "laya:en",
+          "answers": {
+            "department": {
+              "type": "choice",
+              "choice": "billing",
+              "confidence": 0.7781,
+              "probabilities": {"billing": 0.8521, "technical": 0.0611, "account": 0.0868}
+            },
+            "urgency": {
+              "type": "score",
+              "score": 1.1982,
+              "confidence": 0.3418,
+              "legend": {"0": "Can wait", "1": "Needs attention this week", "2": "Needs attention today"},
+              "probabilities": {"0": 0.1203, "1": 0.5612, "2": 0.3185}
+            },
+            "refund": {"type": "noul", "noul": 0.9127}
+          },
+          "usage": {"input_tokens": 118, "output_tokens": 0},
+          "routing": {
+            "router": "laya:latest",
+            "model": "laya:en",
+            "route": "english",
+            "reason": "English Latin text"
+          },
+          "state_truncated": false,
+          "done_reason": "decide",
+          "created_at": "2026-09-24T09:30:12.418Z",
+          "total_duration": 18734512,
+          "load_duration": 0,
+          "eval_duration": 16302117
+        }
+        """#
+        let r = try JSONDecoder().decode(DecideResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(r.model, "laya:en")
+        XCTAssertEqual(r.totalDuration, 18_734_512)
+        XCTAssertEqual(r.answers["department"]?.choice, "billing")
+        XCTAssertEqual(r.answers["department"]?.confidence, 0.7781)
+        XCTAssertEqual(r.answers["urgency"]?.score, 1.1982)
+        XCTAssertEqual(r.answers["urgency"]?.legend?.count, 3)
+        XCTAssertEqual(r.answers["refund"]?.type, "noul")
+        XCTAssertEqual(r.answers["refund"]?.noul, 0.9127)
+        XCTAssertNil(r.answers["refund"]?.confidence)
+    }
+
+    func testDecideKeepsSnakeCaseQuestionIDs() throws {
+        let json = #"{"model": "laya:en", "answers": {"is_urgent": {"type": "noul", "noul": 0.2}}, "total_duration": 1}"#
+        let r = try JSONDecoder().decode(DecideResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(Array(r.answers.keys), ["is_urgent"])
+    }
+
+    func testDecideBodySplicesQuestionsVerbatim() throws {
+        let questions = Data(#"{"b": {"type": "noul"}, "a": {"type": "noul"}}"#.utf8)
+        let body = try OllayaClient.decideBody(model: "laya", state: "Hi \"you\"", questions: questions)
+        XCTAssertNotNil(body.range(of: Data(#","questions":{"b": {"type": "noul"}, "a": {"type": "noul"}}}"#.utf8)),
+                        String(decoding: body, as: UTF8.self))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(object["model"] as? String, "laya")
+        XCTAssertEqual(object["state"] as? String, "Hi \"you\"")
+    }
+
+    func testStateIsTextUnlessItIsAJSONObjectOrArray() throws {
+        XCTAssertEqual(String(decoding: try OllayaClient.stateJSON("  {\"a\": 1}\n"), as: UTF8.self), #"{"a": 1}"#)
+        XCTAssertEqual(String(decoding: try OllayaClient.stateJSON("[1, 2]"), as: UTF8.self), "[1, 2]")
+        XCTAssertEqual(String(decoding: try OllayaClient.stateJSON("{not json"), as: UTF8.self), #""{not json""#)
+        XCTAssertEqual(String(decoding: try OllayaClient.stateJSON("hello\n\n"), as: UTF8.self), #""hello""#)
+    }
 }

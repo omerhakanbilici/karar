@@ -48,6 +48,38 @@ struct OllayaClient: Sendable {
         try await get("api/tags", as: TagsResponse.self).models
     }
 
+    func decide(model: String, state: String, questions: Data) async throws -> DecideResponse {
+        var request = URLRequest(url: base.appending(path: "api/decide"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try Self.decideBody(model: model, state: state, questions: questions)
+        let (data, response) = try await Self.session.data(for: request)
+        try Self.check(response, data)
+        return try JSONDecoder().decode(DecideResponse.self, from: data)
+    }
+
+    /// The questions are spliced in as raw bytes so their key order (question order, criteria
+    /// order) reaches the server unchanged; encoding them as Swift dictionaries would reorder them.
+    static func decideBody(model: String, state: String, questions: Data) throws -> Data {
+        Data(#"{"model":"#.utf8) + (try JSONEncoder().encode(model))
+            + Data(#","state":"#.utf8) + (try stateJSON(state))
+            + Data(#","questions":"#.utf8) + questions + Data("}".utf8)
+    }
+
+    /// As `ollaya run` does: a JSON object or array is sent as JSON, anything else as the text
+    /// itself without trailing newlines.
+    static func stateJSON(_ text: String) throws -> Data {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.first == "{" || trimmed.first == "[",
+           let object = try? JSONSerialization.jsonObject(with: Data(trimmed.utf8)),
+           object is [Any] || object is [String: Any] {
+            return Data(trimmed.utf8)
+        }
+        var text = text
+        while text.last?.isNewline == true { text.removeLast() }
+        return try JSONEncoder().encode(text)
+    }
+
     private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
         let (data, response) = try await Self.session.data(from: base.appending(path: path))
         try Self.check(response, data)
