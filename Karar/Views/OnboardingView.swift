@@ -12,8 +12,10 @@ struct OnboardingView: View {
 
     init(app: AppModel) {
         self.app = app
-        // A download already under way (or failed) picks up at its progress screen.
-        let started = CatalogEntry.all.first { app.downloads[$0.name] != nil }
+        // A download already under way (or failed) picks up at its progress screen. A finished
+        // one is stale (its model was since deleted, or `AppModel` would have dropped it) and is
+        // treated as no download at all.
+        let started = CatalogEntry.all.first { app.downloads[$0.name].map { !$0.isFinished } ?? false }
         _step = State(initialValue: started.map { .downloading($0) } ?? .welcome)
         _choice = State(initialValue: started ?? CatalogEntry.all.first(where: \.recommended) ?? CatalogEntry.all[0])
     }
@@ -135,12 +137,13 @@ struct OnboardingView: View {
                 .controlSize(.large)
                 .keyboardShortcut(.cancelAction)
                 .disabled(download.isFinished)
-                // Only once the post-pull refresh lists the model, so the main window opens on it.
+                // Only once the post-pull refresh lists the model, so the main window opens on it
+                // (listed implies finished: the manifest is written last).
                 Button("Get started") { app.getStarted(with: entry) }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(!(download.isFinished && app.isInstalled(entry)))
+                    .disabled(!app.isInstalled(entry))
             }
         }
     }

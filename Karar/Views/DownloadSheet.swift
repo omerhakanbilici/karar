@@ -70,7 +70,7 @@ private struct DownloadRow: View {
             if app.isInstalled(entry) {
                 Label("Installed", systemImage: "checkmark")
                     .foregroundStyle(.secondary)
-            } else if let download = app.downloads[entry.name] {
+            } else if let download = app.downloads[entry.name], !download.isFinished {
                 if let error = download.error {
                     VStack(alignment: .trailing, spacing: 8) {
                         Text(error)
@@ -78,6 +78,7 @@ private struct DownloadRow: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                             .multilineTextAlignment(.trailing)
+                            .help(error)
                         Button("Retry") { app.download(entry) }
                     }
                 } else {

@@ -248,6 +248,22 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(app.deleteError)
     }
 
+    func testDeleteDropsAFinishedDownloadOfTheDeletedModel() async throws {
+        let fake = FakeOllaya()
+        fake.installed = []
+        let app = makeApp(fake)
+        await app.connect()
+        let entry = try XCTUnwrap(CatalogEntry.named("laya:multilingual"))
+        app.download(entry)
+        await waitUntil { fake.pulls[entry.name] != nil }
+        fake.installed = ["laya:multilingual"]
+        fake.pulls[entry.name]?.yield(line("success"))
+        fake.pulls[entry.name]?.finish()
+        await waitUntil { app.isInstalled(entry) }
+        await app.delete(entry.name)
+        XCTAssertNil(app.downloads[entry.name], "a finished download of the deleted model is stale")
+    }
+
     func testDeleteErrorsAreShown() async {
         let fake = FakeOllaya()
         fake.deleteFailure = OllayaError(error: "laya:en is being pulled", code: "OPERATION_IN_PROGRESS")

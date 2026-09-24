@@ -103,9 +103,7 @@ struct MainView: View {
                 Button("Retry") { Task { await app.daemon.start() } }
             }
         case .running:
-            if !app.modelsLoaded {
-                ProgressView()
-            } else if app.models.isEmpty {
+            if app.models.isEmpty {
                 ContentUnavailableView {
                     Label("No models", systemImage: "shippingbox")
                 } actions: {

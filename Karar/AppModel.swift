@@ -117,6 +117,9 @@ final class AppModel {
             deleteError = error.localizedDescription
         }
         await refreshModels()
+        // A finished download of the just-deleted model is now stale; drop it so onboarding (or
+        // the download sheet) doesn't resume at a download that can never be cancelled or finished.
+        downloads = downloads.filter { !$0.value.isFinished }
     }
 
     /// Leaves onboarding with a result on screen at once (spec §3.1).

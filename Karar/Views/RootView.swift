@@ -8,7 +8,11 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if app.isOnboarding {
+            // A daemon that has failed for good (the one automatic restart already spent) needs
+            // MainView's Retry button even mid-onboarding, so it is checked first.
+            if case .failed = app.daemon.state {
+                MainView(app: app)
+            } else if app.isOnboarding {
                 OnboardingView(app: app)
             } else if showsStartupProgress {
                 ProgressView("Starting Ollaya…")
@@ -26,11 +30,7 @@ struct RootView: View {
         }
     }
 
-    /// Until models have loaded once, a full-window spinner stands in for `MainView` — unless the
-    /// daemon has already failed, in which case `MainView` shows its own retry UI.
-    private var showsStartupProgress: Bool {
-        if app.modelsLoaded { return false }
-        if case .failed = app.daemon.state { return false }
-        return true
-    }
+    /// Until models have loaded once, a full-window spinner stands in for `MainView`. (A failed
+    /// daemon never reaches here: the `.failed` case above already routed to `MainView`.)
+    private var showsStartupProgress: Bool { !app.modelsLoaded }
 }
