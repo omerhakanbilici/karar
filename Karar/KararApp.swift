@@ -4,12 +4,14 @@ import SwiftUI
 /// close/reopen and stop exactly once on quit.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let daemon: Daemon
+    let app: AppModel
 
     override init() {
-        daemon = Daemon(
-            probe: { await OllayaClient.local.liveness() },
-            launch: Daemon.bundledLaunch
+        let client = OllayaClient.local
+        app = AppModel(
+            daemon: Daemon(probe: { await client.liveness() }, launch: Daemon.bundledLaunch),
+            decide: { try await client.decide(model: $0, state: $1, questions: $2) },
+            tags: { try await client.tags() }
         )
         super.init()
     }
@@ -17,11 +19,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests are hosted in the app; don't start a real engine under them.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-        Task { await daemon.start() }
+        Task { await app.daemon.start() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        daemon.stop()
+        app.daemon.stop()
     }
 }
 
@@ -31,7 +33,7 @@ struct KararApp: App {
 
     var body: some Scene {
         Window("Karar", id: "main") {
-            StatusView(daemon: appDelegate.daemon)
+            StatusView(daemon: appDelegate.app.daemon)
         }
     }
 }
