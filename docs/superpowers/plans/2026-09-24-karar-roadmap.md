@@ -291,3 +291,13 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   longer fires; when the connection returns the pull either resumes in place or ends with
   `REGISTRY_ERROR` "error sending request…" (Retry resumes from disk). A small blob still stalls
   silently. Accepted as is (user): a frozen bar with a falling speed is honest enough.
+- Phase 6: before the first public push, every commit's author/committer email was rewritten to
+  the GitHub noreply address `906295+omerhakanbilici@users.noreply.github.com` (the user's rule: never
+  the work address), and this repo's `git config user.email` is set to it. Check `git log --format='%ae %ce' | sort -u` before any push.
+- Phase 6, screenshots: SwiftUI's `Window` ignores `-NSWindow Frame` on a secondary display, so the
+  README images are 1× from the external screen (1100×700, 1280×780). They were taken against a warmed
+  vendor engine on 11435 (Karar adopted it: "already running" in the sidebar), so the answer time
+  shows a warm ~1.45 s instead of the cold ~4.3 s of Karar's own fresh engine. `osascript … to
+  activate` before `screencapture` avoids the inactive (grey) toolbar.
+- Phase 6: the router's `/api/tags` name is `laya:latest`, so the sidebar and toolbar say `laya:latest`,
+  not `laya`.
