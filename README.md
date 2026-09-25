@@ -50,6 +50,8 @@ app. If one of them is already running, Karar uses that engine and leaves it run
 3. Open **System Settings → Privacy & Security**, scroll down to the message about Karar and click
    **Open Anyway**, then confirm. You only do this once.
 
+   <img alt="System Settings, Privacy &amp; Security: “Karar.app” was blocked to protect your Mac, with the Open Anyway button" src="docs/screenshots/open-anyway.png" width="500">
+
 On first launch Karar asks which model to download. `laya` is recommended: fast, 100+ languages,
 about 1.5 GB.
 

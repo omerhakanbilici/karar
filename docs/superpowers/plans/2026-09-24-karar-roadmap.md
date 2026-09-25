@@ -320,10 +320,15 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   which is why the v0.1.0 README shots had labels). The style now sits on the Menu. With labels, the
   window title left too little room: at 720 pt with `laya:multilingual` the Question set menu went
   into the overflow (»). The title is removed from the toolbar on macOS 15+ (`toolbar(removing:
-  .title)`; it stays in the Window menu) and a `ToolbarItem { Spacer() }` keeps the items trailing
-  (`.primaryAction` did not). Checked at 720, 877 and 1100 pt, light and dark, with both SDKs. The
-  brief » when opening Advanced was not seen after the fix in either SDK at 60 fps (region video,
-  877 → 1050 pt growth and 1050 pt without growth); the v0.1.0 build was not recorded.
+  .title)`; it stays in the Window menu). Checked at 720, 877 and 1100 pt, light and dark, with both
+  SDKs. v0.1.1 kept the items trailing with `ToolbarItem { Spacer() }`; the user then found » on the
+  right with the sidebar button gone whenever Advanced was on and the sidebar hidden. Reproduced
+  with a throwaway XCUITest that clicks "Hide Sidebar" (Karar has no ⌃⌘S: no `SidebarCommands`)
+  plus a region video: with the inspector open and the sidebar hidden, ANY flexible item (the title
+  in v0.1.0, which is where its brief » came from, `Spacer()`, `ToolbarSpacer(.flexible)`) sends
+  the sidebar button into the overflow; `.primaryAction` does not move items right. So the items
+  now sit on the leading side with no flexible item (next release). Left: showing the sidebar
+  again with the inspector open flashes » for ~0.3 s in every layout tried (system animation).
 - Phase 6, UI tests (local, 6/6 pass in ~45 s): (1) Automation Mode must be approved in the prompt
   once per session; without it the runner fails after 60 s with "Timed out while enabling automation
   mode", and `automationmodetool status` says "disabled" even after approving. (2) The earlier
