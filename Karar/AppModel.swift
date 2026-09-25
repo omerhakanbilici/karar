@@ -246,7 +246,7 @@ final class AppModel {
         if error is URLError { return "Lost the connection to Ollaya." }
         guard let error = error as? OllayaError else { return error.localizedDescription }
         switch error.code {
-        case "REGISTRY_ERROR": return "Could not reach the model registry. Check your internet connection."
+        case "REGISTRY_ERROR": return "Could not download the model: \(error.error)"
         case "DIGEST_MISMATCH": return "A downloaded file was damaged and has been discarded."
         case "STORAGE_ERROR": return "Could not save the model: \(error.error)"
         case "MODEL_NOT_FOUND": return "This model is not in the registry."

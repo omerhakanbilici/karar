@@ -320,7 +320,8 @@ final class AppModelTests: XCTestCase {
         func message(_ code: String?, _ text: String = "raw") -> String {
             AppModel.pullMessage(OllayaError(error: text, code: code))
         }
-        XCTAssertEqual(message("REGISTRY_ERROR"), "Could not reach the model registry. Check your internet connection.")
+        XCTAssertEqual(message("REGISTRY_ERROR", "No space left on device (os error 28)"),
+                       "Could not download the model: No space left on device (os error 28)")
         XCTAssertEqual(message("DIGEST_MISMATCH"), "A downloaded file was damaged and has been discarded.")
         XCTAssertEqual(message("STORAGE_ERROR", "No space left on device"), "Could not save the model: No space left on device")
         XCTAssertEqual(message("MODEL_NOT_FOUND"), "This model is not in the registry.")
