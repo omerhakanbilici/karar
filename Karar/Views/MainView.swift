@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The main window (spec §3.2): installed models in the sidebar, the text on top, answers below.
 struct MainView: View {
@@ -6,6 +7,18 @@ struct MainView: View {
     @State private var showsDownloadSheet = false
     @State private var modelPendingDelete: String?
     @AppStorage("advanced") private var advanced = false
+    /// What `.inspector(isPresented:)` actually watches. Kept separate from `advanced` (the user's
+    /// stored setting) so turning Advanced on can grow the window *first*: SwiftUI can't resize an
+    /// existing macOS window, and simply binding the inspector to `advanced` directly would present
+    /// it immediately, before `.frame(minWidth:)` (set from the same `advanced` value) gets a chance
+    /// to take effect on a window that already exists — `.frame(minWidth:)` only constrains *future*
+    /// resizes/launches, it does not grow a window that is already open and already narrower.
+    @State private var showsInspector = false
+    /// Below this many points of total window width, `.inspector`'s own column negotiation cannot
+    /// settle once Advanced is on (measured by bisection in fix round 2; holds regardless of what
+    /// the detail column contains). Named once and used by both the window's `.frame(minWidth:)`
+    /// and `growWindowIfNeeded()` below so they can never drift apart.
+    private static let advancedMinWidth: CGFloat = 1050
 
     var body: some View {
         NavigationSplitView {
@@ -123,14 +136,29 @@ struct MainView: View {
                 .help("Edit the questions and inspect the response")
             }
         }
-        // Bisected empirically (not just computed): below ~960–980 pt of total window width with
-        // Advanced on, `.inspector`'s own column negotiation cannot settle regardless of what the
-        // cards contain — even a placeholder in place of the real cards still aborts the same way
-        // below that width, so this is a window-size floor, not a content-size one. 1050 keeps a
-        // safety margin above the measured threshold. AppKit enforces this for every window of this
-        // kind going forward, including one restored from a frame saved by an older build (that's
-        // the scenario the 720/900 pt checks below cover).
-        .frame(minWidth: advanced ? 1050 : 720, minHeight: 480)
+        // Only constrains future resizes and future window creation (including one restored from a
+        // frame saved by an older build) — never an already-open, already-too-narrow window. That
+        // case is handled separately, below: growWindowIfNeeded() plus the showsInspector/advanced
+        // split above.
+        .frame(minWidth: advanced ? Self.advancedMinWidth : 720, minHeight: 480)
+        // `initial: true` also runs this once at appearance, so a window that launched already
+        // Advanced (`-advanced YES`, or the setting from a previous run) gets showsInspector synced
+        // without waiting for a change — harmless no-op for growWindowIfNeeded() in that case, since
+        // `.frame(minWidth:)` above already sized the window correctly before it ever appeared.
+        .onChange(of: advanced, initial: true) { _, newValue in
+            if newValue {
+                growWindowIfNeeded()
+                showsInspector = true
+            } else {
+                showsInspector = false
+            }
+        }
+        // Keeps `advanced` (the user's stored setting) in sync if SwiftUI's own inspector chrome
+        // ever dismisses it directly (e.g. a close control inside the inspector column) instead of
+        // going through our Toggle. Guarded so it never fires back-and-forth with the handler above.
+        .onChange(of: showsInspector) { _, newValue in
+            if newValue != advanced { advanced = newValue }
+        }
         .sheet(isPresented: $showsDownloadSheet) {
             DownloadSheet(app: app)
         }
@@ -154,6 +182,22 @@ struct MainView: View {
         } message: {
             Text(app.deleteError ?? "")
         }
+    }
+
+    /// Grows the already-open window to `advancedMinWidth` if it is narrower, keeping it on its
+    /// screen. SwiftUI has no API to resize a macOS window (`.frame(minWidth:)` only ever
+    /// constrains a *new* size, whether from a live resize or from restoring a saved/injected
+    /// frame), so this reaches into AppKit — the one place `CLAUDE.md`'s "AppKit only where SwiftUI
+    /// lacks it" applies here, alongside `InspectorView`'s `NSPasteboard` use.
+    private func growWindowIfNeeded() {
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }),
+              window.frame.width < Self.advancedMinWidth else { return }
+        var frame = window.frame
+        frame.size.width = Self.advancedMinWidth
+        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? frame
+        frame.origin.x = min(frame.origin.x, visible.maxX - frame.width)
+        frame.origin.x = max(frame.origin.x, visible.minX)
+        window.setFrame(frame, display: true, animate: false)
     }
 
     @ViewBuilder private var detail: some View {
@@ -186,7 +230,7 @@ struct MainView: View {
                     Divider()
                     if advanced { cards } else { results }
                 }
-                .inspector(isPresented: $advanced) {
+                .inspector(isPresented: $showsInspector) {
                     InspectorView(app: app)
                         .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
                 }
