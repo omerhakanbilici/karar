@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
+		4E477D82BAD70BF2E11E5B71 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EE49207FC83C958A7CF4F70B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2A10C7B86D0C136D52F1AA68;
+			remoteInfo = Karar;
+		};
 		B9BD267B0B464244361BD87D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = EE49207FC83C958A7CF4F70B /* Project object */;
@@ -19,9 +26,19 @@
 /* Begin PBXFileReference section */
 		20A7766B1C7C227E544A9670 /* KararTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KararTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		289A18E406E67A7AD9596811 /* Karar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Karar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AF44669D66A13AFC585D2274 /* KararUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KararUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		230F9B40849CC8B8A9EEFDF4 /* KararUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = KararUITests;
+			sourceTree = "<group>";
+		};
 		9BDC767853E7FBD618833690 /* KararTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			explicitFileTypes = {
@@ -48,6 +65,7 @@
 			children = (
 				E93B1034C04E6CD46D6070F5 /* Karar */,
 				9BDC767853E7FBD618833690 /* KararTests */,
+				230F9B40849CC8B8A9EEFDF4 /* KararUITests */,
 				EDD60477B7949021DD8A4812 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -57,6 +75,7 @@
 			children = (
 				289A18E406E67A7AD9596811 /* Karar.app */,
 				20A7766B1C7C227E544A9670 /* KararTests.xctest */,
+				AF44669D66A13AFC585D2274 /* KararUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -85,6 +104,28 @@
 			productName = Karar;
 			productReference = 289A18E406E67A7AD9596811 /* Karar.app */;
 			productType = "com.apple.product-type.application";
+		};
+		3C3F5EFDFB29B156602C292F /* KararUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5ADFBC5EF84C52447B180476 /* Build configuration list for PBXNativeTarget "KararUITests" */;
+			buildPhases = (
+				2C2AA73CC735AC549ABEB2BC /* Sources */,
+				961BBE3AB0682D1E7CEDAE6A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DE748BC7ED54094463054159 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				230F9B40849CC8B8A9EEFDF4 /* KararUITests */,
+			);
+			name = KararUITests;
+			packageProductDependencies = (
+			);
+			productName = KararUITests;
+			productReference = AF44669D66A13AFC585D2274 /* KararUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		94C129C5595443DE57E8F2B9 /* KararTests */ = {
 			isa = PBXNativeTarget;
@@ -121,6 +162,11 @@
 						DevelopmentTeam = "";
 						ProvisioningStyle = Manual;
 					};
+					3C3F5EFDFB29B156602C292F = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+						TestTargetID = 2A10C7B86D0C136D52F1AA68;
+					};
 					94C129C5595443DE57E8F2B9 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Manual;
@@ -143,12 +189,20 @@
 			targets = (
 				2A10C7B86D0C136D52F1AA68 /* Karar */,
 				94C129C5595443DE57E8F2B9 /* KararTests */,
+				3C3F5EFDFB29B156602C292F /* KararUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		71A62B77059F82AB1F33DA8E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		961BBE3AB0682D1E7CEDAE6A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -194,6 +248,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2C2AA73CC735AC549ABEB2BC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7AFAD6C150620BF64AF59F82 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -204,6 +265,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		DE748BC7ED54094463054159 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2A10C7B86D0C136D52F1AA68 /* Karar */;
+			targetProxy = 4E477D82BAD70BF2E11E5B71 /* PBXContainerItemProxy */;
+		};
 		ECF0E297DD51891F1558F015 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 2A10C7B86D0C136D52F1AA68 /* Karar */;
@@ -212,6 +278,40 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		37F9B67674BBEE851F883873 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.omerhakanbilici.KararUITests;
+				SDKROOT = macosx;
+				TEST_TARGET_NAME = Karar;
+			};
+			name = Release;
+		};
+		391506ECBF1DAC2889E77717 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.omerhakanbilici.KararUITests;
+				SDKROOT = macosx;
+				TEST_TARGET_NAME = Karar;
+			};
+			name = Debug;
+		};
 		A8C535F2C48977F2C0BF88BD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -425,6 +525,15 @@
 			buildConfigurations = (
 				AEFCC706BDDB59BF0B3918A1 /* Debug */,
 				DBBDFFA730E07C4792B2C74E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5ADFBC5EF84C52447B180476 /* Build configuration list for PBXNativeTarget "KararUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				391506ECBF1DAC2889E77717 /* Debug */,
+				37F9B67674BBEE851F883873 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

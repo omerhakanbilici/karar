@@ -42,7 +42,7 @@ struct OnboardingView: View {
                     .resizable()
                     .frame(width: 96, height: 96)
                 VStack(spacing: 8) {
-                    Text("Welcome to Karar").font(.largeTitle.weight(.semibold))
+                    Text("Welcome to Karar").font(.largeTitle.weight(.semibold)).accessibilityIdentifier("welcome")
                     Text("Ask typed questions about any text and get calibrated answers in milliseconds. Everything runs on this Mac.")
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

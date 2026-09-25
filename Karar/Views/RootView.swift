@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// The window's root. The only place that starts the engine connection: it never starts the
-/// daemon itself (`AppDelegate` alone does that), it just reacts once the daemon is `.running`
-/// and refreshes the model list whenever the app comes back to the front.
+/// daemon itself (`AppDelegate` does at launch, the banner's buttons on the user's click), it
+/// just reacts once the daemon is `.running` and refreshes the model list whenever the app comes
+/// back to the front.
 struct RootView: View {
     let app: AppModel
 

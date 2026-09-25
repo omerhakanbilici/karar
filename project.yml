@@ -54,3 +54,35 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  KararUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: KararUITests
+        type: syncedFolder
+    dependencies:
+      - target: Karar
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  # Unit tests only: what CI runs (release.yml).
+  Karar:
+    build:
+      targets:
+        Karar: all
+        KararTests: [test]
+    test:
+      config: Debug
+      targets:
+        - KararTests
+  # Local only: drives the real app with the mouse and keyboard (needs Automation mode).
+  KararUITests:
+    build:
+      targets:
+        Karar: all
+        KararUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - KararUITests

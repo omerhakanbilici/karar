@@ -13,7 +13,7 @@ struct ErrorBanner<Actions: View>: View {
                 .font(.title2)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.headline)
+                Text(title).font(.headline).accessibilityIdentifier("bannerTitle")
                 Text(message)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)

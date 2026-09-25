@@ -55,6 +55,7 @@ struct MainView: View {
                                 .contentShape(.rect)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("pinnedResult")
                             .help(pin.rows.map { "\($0.label): \($0.answer)" }.joined(separator: "\n"))
                             .contextMenu {
                                 Button("Remove") { app.unpin(pin) }
@@ -114,6 +115,7 @@ struct MainView: View {
                     Label("Pin", systemImage: "pin")
                 }
                 .keyboardShortcut(.return, modifiers: .command)
+                .accessibilityIdentifier("pin")
                 .disabled(app.result == nil || app.isUpdating)
                 .help("Pin the text and its answers to the sidebar (⌘↩)")
             }
@@ -253,6 +255,7 @@ struct MainView: View {
 
     private var editor: some View {
         TextEditor(text: $app.text)
+            .accessibilityIdentifier("editor")
             .font(.body)
             .scrollContentBackground(.hidden)
             .padding(10)
@@ -292,7 +295,7 @@ struct MainView: View {
                         ForEach(app.rows) { row in
                             GridRow {
                                 Text(row.label).foregroundStyle(.secondary)
-                                Text(row.answer).bold()
+                                Text(row.answer).bold().accessibilityIdentifier("answer")
                                 ProgressView(value: row.sureness)
                                     .frame(minWidth: 120, maxWidth: .infinity)
                                 Text("\(Int((row.sureness * 100).rounded()))%")
