@@ -65,6 +65,9 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        # Never shipped. With Hardened Runtime the XCTest runner's library validation refuses the
+        # ad-hoc signed test bundle ("different Team IDs").
+        ENABLE_HARDENED_RUNTIME: NO
 schemes:
   # Unit tests only: what CI runs (release.yml).
   Karar:
