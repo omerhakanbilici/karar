@@ -121,6 +121,8 @@ final class AppModel {
             preset = pin.preset
         }
         text = pin.text
+        result = nil
+        questionErrors = [:]
         run()
     }
 

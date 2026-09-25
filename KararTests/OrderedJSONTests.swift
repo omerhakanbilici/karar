@@ -3,11 +3,11 @@ import XCTest
 
 final class OrderedJSONTests: XCTestCase {
     func testMembersKeepDocumentOrderAndTheirValues() {
-        let json = #"{"b": {"x": [1, 2]}, "a" : "s,}\"", "c":null}"#
+        let json = #"{"b": {"x": [1, 2]}, "a" : "s,}\"", "c":null, "d": "a\\", "n": {"x": {"y": [1]}}}"#
         let members = OrderedJSON.members(of: Data(json.utf8))
-        XCTAssertEqual(members.map(\.key), ["b", "a", "c"])
+        XCTAssertEqual(members.map(\.key), ["b", "a", "c", "d", "n"])
         XCTAssertEqual(members.map { String(decoding: $0.value, as: UTF8.self).trimmingCharacters(in: .whitespaces) },
-                       [#"{"x": [1, 2]}"#, #""s,}\"""#, "null"])
+                       [#"{"x": [1, 2]}"#, #""s,}\"""#, "null", #""a\\""#, #"{"x": {"y": [1]}}"#])
     }
 
     func testMembersOfSomethingElseAreEmpty() {

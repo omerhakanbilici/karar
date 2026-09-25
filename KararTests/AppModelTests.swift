@@ -423,6 +423,7 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(pin.setName, "My questions")
         app.preset = Preset.all[1]
         app.restore(pin)
+        XCTAssertNil(app.result)
         XCTAssertTrue(app.isCustom)
         XCTAssertEqual(app.questions.count, 4)
     }

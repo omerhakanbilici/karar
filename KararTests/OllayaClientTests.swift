@@ -102,7 +102,6 @@ final class OllayaClientTests: XCTestCase {
         XCTAssertEqual(r.routing?.reason, "English Latin text")
         XCTAssertEqual(r.stateTruncated, false)
         XCTAssertEqual(r.evalDuration, 16_302_117)
-        XCTAssertEqual(r.loadDuration, 0)
         XCTAssertEqual(r.answers["refund"]?.type, "noul")
         XCTAssertEqual(r.answers["refund"]?.noul, 0.9127)
         XCTAssertNil(r.answers["refund"]?.confidence)

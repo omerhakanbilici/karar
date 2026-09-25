@@ -67,7 +67,6 @@ struct DecideResponse: Decodable, Sendable {
     let answers: [String: Answer]
     let totalDuration: Int64     // nanoseconds
     var evalDuration: Int64?
-    var loadDuration: Int64?
     var usage: Usage?
     var routing: Routing?        // only for a router
     var stateTruncated: Bool?
@@ -90,7 +89,6 @@ struct DecideResponse: Decodable, Sendable {
         case model, answers, usage, routing
         case totalDuration = "total_duration"
         case evalDuration = "eval_duration"
-        case loadDuration = "load_duration"
         case stateTruncated = "state_truncated"
     }
 }
