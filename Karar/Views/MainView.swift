@@ -70,8 +70,6 @@ struct MainView: View {
             detail
         }
         .toolbar {
-            // Flexible space: without the title (removingToolbarTitle) the items would sit on the left.
-            ToolbarItem { Spacer() }
             ToolbarItem {
                 Menu {
                     Picker("Model", selection: $app.model) {
@@ -413,7 +411,10 @@ struct MainView: View {
 private extension View {
     /// The window title in the toolbar takes the room the model and question set labels need: at
     /// 720 pt with "laya:multilingual" the Question set menu went into the overflow (»). The title
-    /// stays in the Window menu and Mission Control. macOS 14 keeps it (no API there).
+    /// stays in the Window menu and Mission Control. The items then sit on the leading side, on
+    /// purpose: any flexible item that pushes them right (the title, `ToolbarItem { Spacer() }`,
+    /// `ToolbarSpacer(.flexible)`) sends the sidebar button into the overflow while the inspector
+    /// is open and the sidebar hidden. macOS 14 keeps the title (no API there).
     @ViewBuilder func removingToolbarTitle() -> some View {
         if #available(macOS 15, *) { toolbar(removing: .title) } else { self }
     }
