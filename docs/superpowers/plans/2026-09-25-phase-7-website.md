@@ -57,9 +57,10 @@ Chrome for local screenshots, `ictool` for the icon.
   "“Karar.app” Not Opened", click Done (+ `not-opened.png`); 3 System Settings → Privacy & Security
   → Open Anyway, confirm (+ `open-anyway.png`); footer per constraints. `<meta name="viewport">`,
   `<meta name="color-scheme" content="light dark">`, `<link rel="icon" href="icon.png">`.
-- [ ] **Step 3:** `site/style.css`: `color-scheme: light dark`, `system-ui` font, CSS system colours
-  (`Canvas`, `CanvasText`) plus Apple system blue for the button and links (`#007aff` light,
-  `#0a84ff` dark), one centred column (`max-width` ~1100 px for the screenshot, ~680 px for text),
+- [ ] **Step 3:** `site/style.css`: `color-scheme: light dark`, `system-ui` font, a few colour tokens on `:root`
+  redefined under `prefers-color-scheme: dark` (Apple's light/dark text, background, separator
+  values; system blue `#007aff` / `#0a84ff` for the button and links; the same in every browser,
+  unlike `Canvas`, which differs between Chrome and Safari), one centred column (`max-width` ~1100 px for the screenshot, ~680 px for text),
   `img { max-width: 100%; height: auto }`, Gatekeeper images at their natural width capped at
   ~460 px, one `@media (max-width: 600px)` block for smaller headings.
 - [ ] **Step 4: Check locally:** serve `site/` (`python3 -m http.server -d site 8765`) and take
