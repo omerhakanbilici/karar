@@ -327,7 +327,7 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   plus a region video: with the inspector open and the sidebar hidden, ANY flexible item (the title
   in v0.1.0, which is where its brief » came from, `Spacer()`, `ToolbarSpacer(.flexible)`) sends
   the sidebar button into the overflow; `.primaryAction` does not move items right. So the items
-  now sit on the leading side with no flexible item (next release). Left: showing the sidebar
+  now sit on the leading side with no flexible item (v0.1.2). Left: showing the sidebar
   again with the inspector open flashes » for ~0.3 s in every layout tried (system animation).
 - Phase 6, UI tests (local, 6/6 pass in ~45 s): (1) Automation Mode must be approved in the prompt
   once per session; without it the runner fails after 60 s with "Timed out while enabling automation
