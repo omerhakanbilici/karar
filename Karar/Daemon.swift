@@ -90,7 +90,7 @@ final class Daemon {
 }
 
 extension Daemon {
-    /// The pinned Ollaya version inside the app ("v0.3.2"), copied from vendor/ollaya/VERSION.
+    /// The pinned Ollaya version inside the app ("v0.5.0"), copied from vendor/ollaya/VERSION.
     nonisolated static let bundledVersion: String =
         Bundle.main.url(forResource: "VERSION", withExtension: nil, subdirectory: "Ollaya")
             .flatMap { try? String(contentsOf: $0, encoding: .utf8) }?

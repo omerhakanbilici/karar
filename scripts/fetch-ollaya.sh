@@ -1,8 +1,8 @@
 #!/bin/sh
 # Downloads the pinned Ollaya release into vendor/ollaya and verifies its checksum.
 set -eu
-OLLAYA_VERSION=v0.3.2
-OLLAYA_SHA256=959aabbddde2c8c59b585933047a12a70ca7df20d503aa7ae171a38c2b29876e
+OLLAYA_VERSION=v0.5.0
+OLLAYA_SHA256=70b7183e3ffcbee66f2058a16703d52363fb3d764c835cd97e0f14f97be8a8e1
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 dest="$root/vendor/ollaya"

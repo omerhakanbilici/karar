@@ -280,3 +280,13 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   on shared runners.
 - Phase 4: the `laya` router sent a Turkish ticket to `laya:multilingual` with the reason "Latin
   script but language looks like 'it'" (routing is right, language guess is not).
+- Phase 6, Ollaya bump to v0.5.0: minos still 11.0, still ad-hoc signed; `share/doc/ollaya/` ships
+  the same three files (new `share/ollaya/skills/ollaya-decisions/SKILL.md` is not embedded).
+  `docs/api.md` is byte-identical to v0.3.2, the five presets are unchanged (now in
+  `crates/ollaya-api/src/presets/`), and all 9 `Catalog.json` sizes match the registry manifests.
+  Disk full mid-pull: unchanged (`REGISTRY_ERROR` "No space left on device (os error 28)" after
+  ~74 s). Network loss mid-pull changed: on a large (multi-part) blob the engine now sends a progress
+  line every 250 ms with the same `completed`, so the bar freezes and Karar's 120 s idle timeout no
+  longer fires; when the connection returns the pull either resumes in place or ends with
+  `REGISTRY_ERROR` "error sending request…" (Retry resumes from disk). A small blob still stalls
+  silently. Accepted as is (user): a frozen bar with a falling speed is honest enough.

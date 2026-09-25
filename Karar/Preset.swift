@@ -1,7 +1,7 @@
 import Foundation
 
 /// A built-in question set. The JSON files in `Presets/` are copied verbatim from Ollaya
-/// `crates/ollaya/src/presets/` at the pinned tag (the HTTP API does not serve them).
+/// `crates/ollaya-api/src/presets/` at the pinned tag (the HTTP API does not serve them).
 struct Preset: Identifiable, Hashable, Sendable {
     let id: String              // file name, as `ollaya run --preset` spells it
     let name: String            // shown in the Question set picker

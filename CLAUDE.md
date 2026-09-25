@@ -8,7 +8,7 @@ Native macOS app (SwiftUI) that bundles the Ollaya decision-model daemon. "Karar
 - Roadmap + progress: `docs/superpowers/plans/2026-09-24-karar-roadmap.md`. Work on the first
   unticked phase only, following "How a session works" there. One phase per session.
 - Ollaya's HTTP contract is upstream `docs/api.md` at the pinned tag:
-  `https://github.com/ollaya-dev/ollaya/blob/v0.3.2/docs/api.md`
+  `https://github.com/ollaya-dev/ollaya/blob/v0.5.0/docs/api.md`
 
 ## Commands
 

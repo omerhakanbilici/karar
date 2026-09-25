@@ -29,7 +29,7 @@ Status: approved in brainstorming on 2026-09-24. Mockups: `.superpowers/brainsto
   | `POST /api/decide` | run questions; response adds `routing`, `total_duration`, `eval_duration`, `usage` |
 
 - Built-in presets (question sets): `triage`, `email`, `guard`, `moderation`, `router`.
-  They live in the Ollaya binary (`crates/ollaya/src/presets/*.json`), not in the HTTP API, so
+  They live in the Ollaya binary (`crates/ollaya-api/src/presets/*.json` since v0.5.0), not in the HTTP API, so
   Karar ships its own copies of those JSON files (Apache-2.0, attributed in `THIRD_PARTY.md`).
 - There is no HTTP endpoint that lists models available in the remote registry. Karar ships a small
   curated `Catalog.json` (name, one-line description, languages, license).
@@ -129,7 +129,7 @@ Karar.app
   mirroring `docs/api.md`. `pull` returns an `AsyncThrowingStream<PullProgress>` built from
   `URLSession.bytes(for:)` + `.lines`. Errors decode Ollaya's error body (`error`, `code`, `detail[].loc`).
 - **Bundling Ollaya:** `scripts/fetch-ollaya.sh` downloads the pinned release
-  (`OLLAYA_VERSION`, starting at `v0.3.2`) `ollaya-darwin-arm64.tgz`, checks it against
+  (`OLLAYA_VERSION`, `v0.3.2` at first, `v0.5.0` since Phase 6) `ollaya-darwin-arm64.tgz`, checks it against
   `sha256sum.txt`, and places `ollaya` where an Xcode build phase copies it into
   `Contents/MacOS/`. The binary is not committed.
 - **Identity & signing:** bundle ID `io.github.omerhakanbilici.karar`, fixed from day one.
