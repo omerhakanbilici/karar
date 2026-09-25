@@ -14,7 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tags: { try await client.tags() },
             version: { try await client.version() },
             pull: { client.pull(model: $0) },
-            delete: { try await client.delete(model: $0) }
+            delete: { try await client.delete(model: $0) },
+            load: { try await client.load(model: $0) }
         )
         super.init()
         #if DEBUG

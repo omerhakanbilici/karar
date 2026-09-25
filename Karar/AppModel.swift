@@ -9,6 +9,7 @@ final class AppModel {
     typealias Version = @MainActor () async throws -> String
     typealias Pull = @MainActor (_ model: String) -> AsyncThrowingStream<PullProgress, Error>
     typealias Delete = @MainActor (_ model: String) async throws -> Void
+    typealias Load = @MainActor (_ model: String) async throws -> Void
 
     let daemon: Daemon
     private(set) var models: [ModelInfo] = []
@@ -16,6 +17,7 @@ final class AppModel {
         didSet {
             guard model != oldValue else { return }
             if model != nil { missingModel = nil }
+            preload()
             run()
         }
     }
@@ -56,6 +58,7 @@ final class AppModel {
     private let version: Version
     private let pull: Pull
     private let deleteModel: Delete
+    private let load: Load
     private let debounce: Duration
     private var task: Task<Void, Never>?
     private var currentQuestions = Question.parse(Preset.all[0].questions)
@@ -65,13 +68,14 @@ final class AppModel {
     private var pullTasks: [String: Task<Void, Never>] = [:]
 
     init(daemon: Daemon, decide: @escaping Decide, tags: @escaping Tags, version: @escaping Version,
-         pull: @escaping Pull, delete: @escaping Delete, debounce: Duration = .milliseconds(300)) {
+         pull: @escaping Pull, delete: @escaping Delete, load: @escaping Load = { _ in }, debounce: Duration = .milliseconds(300)) {
         self.daemon = daemon
         self.decide = decide
         self.tags = tags
         self.version = version
         self.pull = pull
         self.deleteModel = delete
+        self.load = load
         self.debounce = debounce
     }
 
@@ -143,12 +147,16 @@ final class AppModel {
 
     /// Called whenever the engine becomes ready: at launch and after every (re)start. Re-running
     /// replaces an error left from before an automatic restart (spec §5); skipped when the refresh
-    /// already changed the selection, since that ran through `model`'s `didSet` already.
+    /// already changed the selection, since that ran through `model`'s `didSet` already, which also
+    /// preloaded it.
     func connect() async {
         let before = model
         await refreshModels()
         engineVersion = (try? await version()) ?? ""
-        if model == before { run() }
+        if model == before {
+            preload()
+            run()
+        }
     }
 
     /// Reloads the installed models. The newest call's answer wins; an older one that answers later
@@ -208,7 +216,7 @@ final class AppModel {
                     downloads[name]?.apply(progress, at: .now)
                 }
             } catch {
-                downloads[name]?.error = error.localizedDescription
+                downloads[name]?.error = Self.pullMessage(error)
             }
             pullTasks[name] = nil
             if Task.isCancelled {
@@ -227,6 +235,19 @@ final class AppModel {
             task.cancel()
         } else {
             downloads[entry.name] = nil
+        }
+    }
+
+    /// A failed pull's text on its row (spec §5), by error code (docs/api.md §4.2, §7.6).
+    static func pullMessage(_ error: Error) -> String {
+        if error is URLError { return "Lost the connection to Ollaya." }
+        guard let error = error as? OllayaError else { return error.localizedDescription }
+        switch error.code {
+        case "REGISTRY_ERROR": return "Could not reach the model registry. Check your internet connection."
+        case "DIGEST_MISMATCH": return "A downloaded file was damaged and has been discarded."
+        case "STORAGE_ERROR": return "Could not save the model: \(error.error)"
+        case "MODEL_NOT_FOUND": return "This model is not in the registry."
+        default: return error.error
         }
     }
 
@@ -255,6 +276,13 @@ final class AppModel {
         Hi, I was charged twice for my subscription this month. Please refund the second payment. \
         I have been a customer for three years, but if this is not fixed by Friday I will cancel my account.
         """
+
+    /// Loads the selected model in the background (docs/api.md §7.3), so the first answer after
+    /// picking it, or after an engine restart, doesn't wait 2.5–3.3 s for the load. Best effort.
+    private func preload() {
+        guard let model else { return }
+        Task { try? await load(model) }
+    }
 
     /// Live results (spec §3.2): cancel the request in flight, wait for typing to pause, ask again.
     private func run() {

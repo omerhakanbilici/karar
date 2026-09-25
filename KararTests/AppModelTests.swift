@@ -13,6 +13,7 @@ final class FakeOllaya {
     var deleteFailure: Error?
     var tagsFailure: Error?
     var versionDelay: Duration = .zero
+    var loads: [String] = []
 
     /// Answers every triage question; the response's `model` echoes the state so tests can tell
     /// which request produced the visible result.
@@ -48,6 +49,8 @@ final class FakeOllaya {
         deleted.append(model)
         installed.removeAll { $0 == model }
     }
+
+    func load(_ model: String) async throws { loads.append(model) }
 }
 
 @MainActor
@@ -55,7 +58,7 @@ final class AppModelTests: XCTestCase {
     private func makeApp(_ fake: FakeOllaya) -> AppModel {
         let daemon = Daemon(probe: { .none }, launch: { _ in {} })
         let app = AppModel(daemon: daemon, decide: fake.decide, tags: fake.tags, version: fake.version,
-                           pull: fake.pull, delete: fake.delete, debounce: .milliseconds(50))
+                           pull: fake.pull, delete: fake.delete, load: fake.load, debounce: .milliseconds(50))
         app.model = "laya:en"
         return app
     }
@@ -103,6 +106,16 @@ final class AppModelTests: XCTestCase {
         XCTAssertNotNil(app.result, "old rows stay while the new model answers")
         await waitUntil { fake.calls.count == 2 && !app.isUpdating }
         XCTAssertEqual(fake.calls.map(\.model), ["laya:en", "laya:multilingual"])
+    }
+
+    func testPickingAModelPreloadsIt() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        app.model = "laya:multilingual"
+        await waitUntil { fake.loads.last == "laya:multilingual" }
+        fake.loads = []
+        await app.connect()                                    // after an engine restart
+        await waitUntil { fake.loads == ["laya:multilingual"] }
     }
 
     func testSwitchingQuestionSetRerunsWithItsQuestions() async {
@@ -301,6 +314,30 @@ final class AppModelTests: XCTestCase {
         await waitUntil { app.isInstalled(entry) }
         XCTAssertEqual(app.downloads[entry.name]?.isFinished, true)
         XCTAssertTrue(app.isOnboarding, "stays until Get started")
+    }
+
+    func testPullErrorsAreWordedByCode() {
+        func message(_ code: String?, _ text: String = "raw") -> String {
+            AppModel.pullMessage(OllayaError(error: text, code: code))
+        }
+        XCTAssertEqual(message("REGISTRY_ERROR"), "Could not reach the model registry. Check your internet connection.")
+        XCTAssertEqual(message("DIGEST_MISMATCH"), "A downloaded file was damaged and has been discarded.")
+        XCTAssertEqual(message("STORAGE_ERROR", "No space left on device"), "Could not save the model: No space left on device")
+        XCTAssertEqual(message("MODEL_NOT_FOUND"), "This model is not in the registry.")
+        XCTAssertEqual(message(nil, "The download was interrupted."), "The download was interrupted.")
+        XCTAssertEqual(message("SOMETHING_NEW", "engine words"), "engine words", "unknown codes fall back to the message")
+        XCTAssertEqual(AppModel.pullMessage(URLError(.networkConnectionLost)), "Lost the connection to Ollaya.")
+    }
+
+    func testAFailedDownloadUsesTheWording() async throws {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        let entry = try XCTUnwrap(CatalogEntry.named("nli"))
+        app.download(entry)
+        await waitUntil { fake.pulls[entry.name] != nil }
+        fake.pulls[entry.name]?.finish(throwing: OllayaError(error: "x", code: "DIGEST_MISMATCH"))
+        await waitUntil { app.downloads[entry.name]?.error != nil }
+        XCTAssertEqual(app.downloads[entry.name]?.error, "A downloaded file was damaged and has been discarded.")
     }
 
     func testAFailedDownloadShowsTheErrorAndRetryStartsAgain() async throws {
