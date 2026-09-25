@@ -17,6 +17,9 @@ scripts/fetch-ollaya.sh                      # once, and after bumping OLLAYA_VE
 xcodegen generate                            # after editing project.yml
 xcodebuild -project Karar.xcodeproj -scheme Karar -destination 'platform=macOS' -derivedDataPath build test
 xcodebuild -project Karar.xcodeproj -scheme Karar -configuration Release -derivedDataPath build build
+scripts/make-dmg.sh                          # Release build → Karar.dmg (always this name)
+KARAR_SMOKE_MODELS=<dir> scripts/smoke.sh    # real engine on 11436: pull laya:en, one decide
+TEST_RUNNER_KARAR_UITEST_MODELS=<dir> xcodebuild -project Karar.xcodeproj -scheme KararUITests -destination 'platform=macOS' -derivedDataPath build test   # local only
 open build/Build/Products/Debug/Karar.app
 ```
 
