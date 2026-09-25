@@ -205,9 +205,8 @@ struct MainView: View {
                 VStack(spacing: 0) {
                     editor
                         .padding([.horizontal, .top], 20)
-                    // Fixed height: the counter appearing, changing or turning into the warning never moves the layout.
+                    // Always reserve 30 pt for the counter or warning.
                     tokenCounter
-                        .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30, alignment: .trailing)
                         .padding(.horizontal, 20)
                     Divider()
                     if advanced { cards } else { results }
@@ -324,8 +323,8 @@ struct MainView: View {
     /// Spec §3.2: the engine's token count for the last answer, never an estimate; the warning in
     /// system orange when the text was cut (§5).
     @ViewBuilder private var tokenCounter: some View {
-        if let result = app.result, let tokens = result.usage?.inputTokens {
-            Group {
+        Group {
+            if let result = app.result, let tokens = result.usage?.inputTokens {
                 if result.stateTruncated == true {
                     Label("Text too long for \(result.model): only the first part was read",
                           systemImage: "exclamationmark.triangle.fill")
@@ -335,12 +334,18 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .font(.caption)
-            .monospacedDigit()
-            .lineLimit(1)
-            .opacity(app.isUpdating ? 0.5 : 1)
-            .help(Self.tokenHelp(tokens: tokens, questions: result.answers.count))
         }
+        .font(.caption)
+        .monospacedDigit()
+        .lineLimit(1)
+        .opacity(app.isUpdating ? 0.5 : 1)
+        .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30, alignment: .trailing)
+        .help(tokenCounterHelp)
+    }
+
+    private var tokenCounterHelp: String {
+        guard let result = app.result, let tokens = result.usage?.inputTokens else { return "" }
+        return Self.tokenHelp(tokens: tokens, questions: result.answers.count)
     }
 
     static func tokenHelp(tokens: Int, questions: Int) -> String {
