@@ -85,6 +85,19 @@ Plans are written at the start of their phase, not all up front, so they match t
   *Acceptance:* `releases/latest/download/Karar.dmg` downloads; the DMG installs on a clean user
   account via the "Open Anyway" flow.
 
+  *Also (user, Phase 5 session) — first, bump the bundled Ollaya to v0.5.0* (released 2026-09-25,
+  with Ollaya's own desktop app), following "Keeping the bundled Ollaya current" below:
+  `scripts/fetch-ollaya.sh` → `OLLAYA_VERSION=v0.5.0`, `OLLAYA_SHA256=70b7183e3ffcbee66f2058a16703d52363fb3d764c835cd97e0f14f97be8a8e1`
+  (`ollaya-darwin-arm64.tgz` in the release's `sha256sum.txt`); check the macOS minimum with
+  `vtool -show-build` and what `share/doc/ollaya/` ships now. Checked in Phase 5: `docs/api.md` is
+  byte-identical between v0.3.2 and v0.5.0, and the five presets are unchanged (moved to
+  `crates/ollaya-api/src/presets/`: update the path in NOTICE and wherever it is cited). Then move
+  every "v0.3.2" pin reference to v0.5.0 (CLAUDE.md contract link, spec §4 "Bundling Ollaya", plan
+  headers going forward, `Karar/Presets` provenance), re-check `Catalog.json` against the registry,
+  run the tests, and re-run the two Phase 5 pull checks that depend on the engine: disk full mid-pull
+  (was `REGISTRY_ERROR` "No space left on device" after ~1 min) and Wi-Fi off mid-pull (stalled until
+  reconnect). Write what changed into Notes. One commit for the bump, before the release work.
+
   *Also (user, Phase 5 session) — UI tests (XCUITest):* add a `KararUITests` target to
   `project.yml` (`type: bundle.ui-testing`, synced folder; `xcodegen generate`, commit both). No
   third-party code: XCTest/XCUITest only, no Appium, ViewInspector or snapshot libraries. Add
