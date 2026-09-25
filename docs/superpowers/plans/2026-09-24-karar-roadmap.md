@@ -66,7 +66,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   `~/.ollaya`): does `input_tokens` include the questions and options, and after truncation is it
   the original or the truncated length? Write the answer into Notes and design the counter on it.
 
-- [ ] **Phase 5 — Polish: errors, About, icon.**
+- [x] **Phase 5 — Polish: errors, About, icon.**
   Plan: [`2026-09-25-phase-5-polish.md`](2026-09-25-phase-5-polish.md)
   All rows of spec §5 (error banner with Restart, port-in-use message, pull errors + Retry, deleted
   model fallback), About window (versions + licences, spec §3.3), app icon, empty states, keyboard
@@ -217,6 +217,39 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
 - Deferred from Phase 4 reviews: a hand-typed duplicate choice label is sent as a duplicate JSON
   key (only "Add option" picks a free one); `growWindowIfNeeded()` doesn't cap the width on screens
   narrower than 1050 pt; new `JSONDecoder` per key in `OrderedJSON.members`.
+- Phase 5: a wrapping `Text` with `.fixedSize(horizontal: false, vertical: true)` inside a top
+  `.safeAreaInset` loops AppKit's constraint passes: with `.inspector` in the tree Karar aborts
+  ("more Update Constraints in Window passes than there are views"), without it the whole window
+  content slides up under the titlebar. The engine banner is therefore the first child of the
+  content VStack that carries `.inspector`, with a line-limited message. The same `fixedSize` inside
+  a `Grid` (About) mis-sized rows; a single vertical `fixedSize` on the root fixed it.
+- Phase 5, Ollaya 0.3.2 (worth reporting upstream): a pull that fills the disk sends
+  `REGISTRY_ERROR` "No space left on device (os error 28)" about a minute later, not
+  `STORAGE_ERROR`; with Wi-Fi off a pull just stalls until the connection returns, then sends
+  `REGISTRY_ERROR`. Karar shows the engine's message for `REGISTRY_ERROR` and gives up on a pull after
+  120 s without a byte (`URLRequest.timeoutInterval`, an idle timeout); Retry resumes from disk.
+  Pulls never log errors in `ollaya.log`. SIGKILLing `ollaya serve` leaves its `ollaya runner`
+  children running (ppid 1); kill them after crash tests.
+- Phase 5: the icon is an Icon Composer document (`Karar/AppIcon.icon`: icon.json + SVG layers), not
+  an appiconset: macOS appiconsets can't carry a dark variant (actool drops `luminosity: dark`).
+  actool builds light/dark/tinted renditions plus a flat icns for macOS 14–15. macOS 27 draws layer
+  edges without anti-aliasing (1-px steps on the tilted beam at large sizes; the system does the same
+  to legacy icons); the user accepted it. Preview with
+  `Icon Composer.app/Contents/Executables/ictool <file>.icon --export-image …` (`xcrun ictool` is a
+  different tool).
+- Phase 5, dev machines: several Karar.app builds with the same bundle ID (old worktrees) made
+  LaunchServices resolve the ID to an icon-less one, so the Dock and `NSApp.applicationIconImage`
+  showed a generic icon. `lsregister -u` on stale builds (and removing old worktrees) fixed it; a
+  Release build shows the icon. After a Karar crash, macOS's "Reopen" relaunches it without the
+  test environment, so it uses `~/.ollaya` — click Ignore.
+- Phase 5, for UI checks: windows that need a click can be rendered offscreen with `ImageRenderer`
+  in a throwaway test (buttons render as placeholders). Pick a window by owner PID, not "widest
+  Karar window", when several Karar processes may run. `OLLAYA_REGISTRY=http://127.0.0.1:8123`
+  (python http.server) gives a 404 pull and `http://127.0.0.1:9` a 502; with a registry override
+  `/api/tags` names are fully qualified (`ollaya.dev/library/laya:en`), so "Installed" doesn't match.
+- Deferred from Phase 5 reviews: with no models at all the toolbar reads "Choose a model"; licence
+  windows re-read their file on each open; `preload()` is an untracked best-effort task; no test for
+  `MODEL_NOT_FOUND` from a router whose target is missing; `modelsError ?? ""` is redundant.
 - UI tests (Phase 6): XCUITest drives the real mouse and keyboard while it runs (don't use the Mac
   meanwhile) and does not work while the screen is locked.
 - Phase 4: the `laya` router sent a Turkish ticket to `laya:multilingual` with the reason "Latin

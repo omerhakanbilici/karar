@@ -92,6 +92,17 @@ disappear or jump in an empty state, line breaks in live-updating text, light an
   own `LICENSE` and `NOTICE` are not in the bundle yet.
 - `https://ollaya.dev` answers `200 text/html`.
 
+## Changed during execution (user decisions)
+
+- Icon: an Icon Composer document with a dark variant instead of an appiconset (Task 6).
+- Licence texts open in their own window, not a sheet: the 640 pt sheet overflowed the 440 pt About.
+- A pull fails after 120 s without progress ("The download stopped making progress. Check your
+  connection and free disk space."); `REGISTRY_ERROR` shows "Could not download the model: <engine
+  message>" (Ollaya reports a full disk as `REGISTRY_ERROR`).
+- The engine banner is the first child of the content VStack (not a `.safeAreaInset`), with a
+  line-limited message: see the roadmap notes for the crash this avoided.
+- `connect()` re-runs only when the refresh didn't change the selection (no double request).
+
 ## Design decisions (no user input needed)
 
 - **Deleted outside Karar** (spec §5): when a refresh no longer lists the selected model, the
