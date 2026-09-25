@@ -70,6 +70,8 @@ struct MainView: View {
             detail
         }
         .toolbar {
+            // Flexible space: without the title (removingToolbarTitle) the items would sit on the left.
+            ToolbarItem { Spacer() }
             ToolbarItem {
                 Menu {
                     Picker("Model", selection: $app.model) {
@@ -81,8 +83,8 @@ struct MainView: View {
                     Button("Download model…") { showsDownloadSheet = true }
                 } label: {
                     Label(app.model ?? "Choose a model", systemImage: "cpu")
-                        .labelStyle(.titleAndIcon)
                 }
+                .labelStyle(.titleAndIcon)
                 .help("Model")
             }
             ToolbarItem {
@@ -104,8 +106,8 @@ struct MainView: View {
                     }
                 } label: {
                     Label(app.isCustom ? "My questions" : app.preset.name, systemImage: "list.bullet.rectangle")
-                        .labelStyle(.titleAndIcon)
                 }
+                .labelStyle(.titleAndIcon)
                 .help("Question set")
             }
             ToolbarItem {
@@ -128,6 +130,7 @@ struct MainView: View {
                 .help("Edit the questions and inspect the response (⌥⌘I)")
             }
         }
+        .removingToolbarTitle()
         // Only constrains a new window (launch, or a saved/injected frame smaller than this) — never
         // an already-open one; growWindowIfNeeded() below handles that case.
         .frame(minWidth: advanced ? Self.advancedMinWidth : 720, minHeight: 480)
@@ -404,5 +407,14 @@ struct MainView: View {
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+}
+
+private extension View {
+    /// The window title in the toolbar takes the room the model and question set labels need: at
+    /// 720 pt with "laya:multilingual" the Question set menu went into the overflow (»). The title
+    /// stays in the Window menu and Mission Control. macOS 14 keeps it (no API there).
+    @ViewBuilder func removingToolbarTitle() -> some View {
+        if #available(macOS 15, *) { toolbar(removing: .title) } else { self }
     }
 }
