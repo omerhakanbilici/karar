@@ -1,6 +1,6 @@
 # Karar
 
-Native macOS app (SwiftUI) that bundles the Ollaya decision-model daemon. "Karar — a Mac app for Ollaya".
+Native macOS app (SwiftUI) that bundles the Ollaya decision-model daemon. "Karar - a Mac app for Ollaya".
 
 ## Start here every session
 

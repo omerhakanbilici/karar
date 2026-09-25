@@ -1,6 +1,6 @@
 # Karar — design
 
-*Karar — a Mac app for Ollaya.* A native macOS app that bundles the [Ollaya](https://github.com/ollaya-dev/ollaya)
+*Karar - a Mac app for Ollaya.* A native macOS app that bundles the [Ollaya](https://github.com/ollaya-dev/ollaya)
 daemon, lets the user download decision models and try them against any text, with live,
 calibrated answers.
 
@@ -202,7 +202,7 @@ karar/
 - Plain `index.html` + `style.css`, no framework, no build step, no JavaScript needed.
 - English only. Light/dark follows `prefers-color-scheme` automatically.
 - Content, top to bottom:
-  1. Name, tagline ("Karar — a Mac app for Ollaya") and a one-paragraph intro.
+  1. Name, tagline ("Karar - a Mac app for Ollaya") and a one-paragraph intro.
   2. A large **Download for Mac** button →
      `https://github.com/omerhakanbilici/karar/releases/latest/download/Karar.dmg`, with
      "Apple silicon · macOS 14+" underneath and an **All releases** link to `/releases`.

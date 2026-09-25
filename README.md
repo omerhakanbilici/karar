@@ -1,6 +1,6 @@
 # Karar
 
-**Karar — a Mac app for Ollaya.** Ask typed questions about any text and see calibrated answers
+**Karar - a Mac app for Ollaya.** Ask typed questions about any text and see calibrated answers
 while you type. Everything runs on your Mac.
 
 <picture>
@@ -9,8 +9,8 @@ while you type. Everything runs on your Mac.
 </picture>
 
 Karar is a native macOS app for [Ollaya](https://ollaya.dev), an engine for decision models.
-Decision models don't write text: they read a text and answer typed questions about it — a choice
-(refund, technical help, …), a score (2.4 of 3) or a yes/no — each with a calibrated confidence.
+Decision models don't write text: they read a text and answer typed questions about it: a choice
+(refund, technical help, …), a score (2.4 of 3) or a yes/no, each with a calibrated confidence.
 Karar bundles the engine, downloads models for you, and re-runs the questions every time you
 pause typing.
 
