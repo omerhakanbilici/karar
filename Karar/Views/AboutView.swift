@@ -70,12 +70,10 @@ struct AboutView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(Self.modelLicences, id: \.licence) { group in
                             Text("\(group.licence): \(group.models.joined(separator: ", "))")
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Text("Each model has its own licence. Ollaya downloads models from their authors; Karar includes none.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -90,6 +88,7 @@ struct AboutView: View {
         }
         .padding(28)
         .frame(width: 440)
+        .fixedSize(horizontal: false, vertical: true)
         .sheet(item: $shown) { LicenceView(licence: $0) }
     }
 
