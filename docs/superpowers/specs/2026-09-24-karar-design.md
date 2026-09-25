@@ -162,6 +162,9 @@ Karar.app
   - decode every JSON example from Ollaya `docs/api.md` used by Karar (decide, tags, pull lines, errors);
   - pull progress parsing from recorded NDJSON;
   - Daemon decision logic (adopt / start / port busy) against a stubbed liveness check.
+- `KararUITests` (XCUITest, no third-party code): a few smoke tests (launch, typing → answers,
+  ⌘↩ pin, port-in-use banner, onboarding on an empty store), launched with the DEBUG arguments and
+  a scratch `OLLAYA_MODELS`; window screenshots (light and dark) attached to the results.
 - `scripts/smoke.sh`: real engine, local only: start bundled `ollaya serve`, `pull laya:en`,
   one `decide`, check the answer shape.
 - Manual checklist before each release: first run on a clean user account, light/dark, Gatekeeper "Open Anyway" flow on the DMG.

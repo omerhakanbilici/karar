@@ -67,6 +67,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   the original or the truncated length? Write the answer into Notes and design the counter on it.
 
 - [ ] **Phase 5 — Polish: errors, About, icon.**
+  Plan: [`2026-09-25-phase-5-polish.md`](2026-09-25-phase-5-polish.md)
   All rows of spec §5 (error banner with Restart, port-in-use message, pull errors + Retry, deleted
   model fallback), About window (versions + licences, spec §3.3), app icon, empty states, keyboard
   shortcuts, light/dark check of every screen.
@@ -83,6 +84,25 @@ Plans are written at the start of their phase, not all up front, so they match t
   repo `omerhakanbilici/karar`, pushing, and tagging `v0.1.0`.
   *Acceptance:* `releases/latest/download/Karar.dmg` downloads; the DMG installs on a clean user
   account via the "Open Anyway" flow.
+
+  *Also (user, Phase 5 session) — UI tests (XCUITest):* add a `KararUITests` target to
+  `project.yml` (`type: bundle.ui-testing`, synced folder; `xcodegen generate`, commit both). No
+  third-party code: XCTest/XCUITest only, no Appium, ViewInspector or snapshot libraries. Add
+  `.accessibilityIdentifier` to the views the tests select. Launch the app with
+  `launchArguments`/`launchEnvironment`: the existing DEBUG arguments (`-KararText`,
+  `-KararQuestions`, `-KararAppearance`, `-advanced`, `-ApplePersistenceIgnoreState YES`) and a
+  scratch `OLLAYA_MODELS` (never `~/.ollaya`). A few smoke tests are enough:
+  1. launch → main window;
+  2. typing brings answer rows;
+  3. ⌘↩ adds a pin to the sidebar;
+  4. with port 11435 held by something that is not Ollaya, the banner shows;
+  5. with an empty model store, onboarding opens.
+  Attach window images to the test results with `XCUIElement.screenshot()` (light and dark); they
+  can feed the README and site screenshots. Heavy cases (a real download, a cold load) stay in
+  `scripts/smoke.sh` and the manual check. **Before planning, decide with the user:** (a) whether
+  the UI tests run in CI (a GitHub macOS runner would have to download a model, ~800 MB) or only
+  locally; (b) running them locally needs Automation mode / Accessibility enabled once
+  (`automationmodetool`) — the user does that; never change the system setting yourself.
 
 - [ ] **Phase 7 — Website.**
   `site/index.html` + `style.css` per spec §8, `.github/workflows/pages.yml`. **Ask the user** to set
@@ -197,5 +217,7 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
 - Deferred from Phase 4 reviews: a hand-typed duplicate choice label is sent as a duplicate JSON
   key (only "Add option" picks a free one); `growWindowIfNeeded()` doesn't cap the width on screens
   narrower than 1050 pt; new `JSONDecoder` per key in `OrderedJSON.members`.
+- UI tests (Phase 6): XCUITest drives the real mouse and keyboard while it runs (don't use the Mac
+  meanwhile) and does not work while the screen is locked.
 - Phase 4: the `laya` router sent a Turkish ticket to `laya:multilingual` with the reason "Latin
   script but language looks like 'it'" (routing is right, language guess is not).
