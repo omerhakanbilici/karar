@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Karar - a Mac app for Ollaya</title>
+  <meta name="description" content="Ask typed questions about any text and see calibrated answers while you type. Everything runs on your Mac.">
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <img class="icon" src="icon.png" width="128" height="128" alt="">
+    <h1>Karar</h1>
+    <p class="tagline">Karar - a Mac app for Ollaya</p>
+    <p class="intro">Ask typed questions about any text and see calibrated answers while you type.
+      Karar bundles the <a href="https://ollaya.dev">Ollaya</a> engine for decision models,
+      downloads models for you and re-runs the questions every time you pause typing.
+      Everything runs on your Mac.</p>
+    <a class="download" href="https://github.com/omerhakanbilici/karar/releases/latest/download/Karar.dmg">Download for Mac</a>
+    <p class="requirements">Apple silicon · macOS 14+ ·
+      <a href="https://github.com/omerhakanbilici/karar/releases">All releases</a></p>
+  </header>
+
+  <picture class="screenshot">
+    <source media="(prefers-color-scheme: dark)" srcset="screenshots/main-dark.png">
+    <img src="screenshots/main-light.png" width="1100" height="700"
+         alt="Karar's main window: a support ticket and the answers to its five questions">
+  </picture>
+
+  <main>
+    <section>
+      <h2>What it does</h2>
+      <p>Decision models don't write text. They read a text and answer typed questions about it:
+        a choice (refund, technical help, …), a score (2.4 of 3) or a yes/no, each with a
+        calibrated confidence.</p>
+      <ul>
+        <li><strong>Live answers while you type:</strong> each edit re-runs the questions a moment
+          after you pause.</li>
+        <li><strong>Editable question cards</strong> (Advanced): change instructions and options,
+          add choice, score and yes/no questions.</li>
+        <li><strong>An inspector:</strong> which model answered and why, timings, token usage, the
+          raw response, Copy JSON and Copy as curl.</li>
+        <li><strong>A token counter</strong> under the text, and a warning when the text is longer
+          than the model can read.</li>
+        <li><strong>Pins:</strong> ⌘↩ keeps a text and its answers in the sidebar, to compare
+          them later.</li>
+        <li><strong>A native SwiftUI app</strong> that follows your Mac's light or dark
+          appearance.</li>
+      </ul>
+    </section>
+
+    <section id="first-launch">
+      <h2>First launch</h2>
+      <p>Karar is not notarized by Apple, so macOS asks you to confirm once that you want to open
+        it.</p>
+      <ol>
+        <li>Open <strong>Karar.dmg</strong> and drag Karar to Applications.</li>
+        <li>
+          <p>Open Karar. macOS says it could not verify the app. Click <strong>Done</strong>
+            (on macOS 14: <strong>OK</strong>).</p>
+          <img class="dialog" src="screenshots/not-opened.png"
+               alt="“Karar.app” Not Opened: Apple could not verify “Karar.app” is free of malware, with the buttons Done and Move to Bin">
+        </li>
+        <li>
+          <p>Open <strong>System Settings → Privacy &amp; Security</strong>, scroll down to
+            “Karar.app” was blocked and click <strong>Open Anyway</strong>, then confirm. Karar
+            opens, and from now on it opens like any other app.</p>
+          <img class="settings" src="screenshots/open-anyway.png"
+               alt="System Settings, Privacy &amp; Security: “Karar.app” was blocked to protect your Mac, with the Open Anyway button">
+        </li>
+      </ol>
+      <p>Karar then asks which model to download. <code>laya</code> is recommended: fast, 100+
+        languages, about 1.5 GB.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Karar is open source under the Apache License 2.0 ·
+      <a href="https://github.com/omerhakanbilici/karar">Source on GitHub</a></p>
+    <p>Built on <a href="https://ollaya.dev">Ollaya</a> (Apache-2.0). Not affiliated with the
+      Ollaya project.</p>
+  </footer>
+</body>
+</html>

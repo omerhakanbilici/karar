@@ -1,0 +1,128 @@
+:root {
+  color-scheme: light dark;
+  --text: #1d1d1f;
+  --secondary: #6e6e73;
+  --background: #ffffff;
+  --separator: #d2d2d7;
+  --accent: #007aff;
+  --fill: #f5f5f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f5f5f7;
+    --secondary: #a1a1a6;
+    --background: #161617;
+    --separator: #424245;
+    --accent: #0a84ff;
+    --fill: #242426;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 16px;
+  background: var(--background);
+  color: var(--text);
+  font: 17px/1.5 system-ui, -apple-system, "Helvetica Neue", sans-serif;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; height: auto; }
+
+header, main, footer {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+header {
+  padding: 64px 0 40px;
+  text-align: center;
+}
+
+.icon { width: 128px; height: 128px; }
+
+h1 {
+  margin: 8px 0 0;
+  font-size: 56px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  margin: 4px 0 24px;
+  color: var(--secondary);
+  font-size: 21px;
+}
+
+.intro { margin: 0 0 32px; }
+
+.download {
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 980px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 600;
+}
+.download:hover { text-decoration: none; filter: brightness(1.1); }
+
+.requirements {
+  margin: 12px 0 0;
+  color: var(--secondary);
+  font-size: 15px;
+}
+
+.screenshot img {
+  display: block;
+  max-width: min(1100px, 100%);
+  margin: 0 auto;
+  /* The light window is white on white without it; follows the rounded corners. */
+  filter: drop-shadow(0 6px 24px rgb(0 0 0 / 0.18));
+}
+
+main { padding: 24px 0; }
+
+section { padding: 24px 0; }
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+ul, ol { padding-left: 1.4em; }
+li { margin: 8px 0; }
+li p { margin: 0 0 12px; }
+ol > li { margin-bottom: 28px; }
+
+.dialog { width: 260px; }
+.settings { width: 467px; }
+
+code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--fill);
+  font: 15px ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+footer {
+  padding: 24px 0 48px;
+  border-top: 1px solid var(--separator);
+  color: var(--secondary);
+  font-size: 14px;
+}
+footer p { margin: 4px 0; }
+
+@media (max-width: 600px) {
+  header { padding-top: 40px; }
+  .icon { width: 96px; height: 96px; }
+  h1 { font-size: 44px; }
+  h2 { font-size: 26px; }
+}
