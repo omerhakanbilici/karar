@@ -327,6 +327,8 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(message(nil, "The download was interrupted."), "The download was interrupted.")
         XCTAssertEqual(message("SOMETHING_NEW", "engine words"), "engine words", "unknown codes fall back to the message")
         XCTAssertEqual(AppModel.pullMessage(URLError(.networkConnectionLost)), "Lost the connection to Ollaya.")
+        XCTAssertEqual(AppModel.pullMessage(URLError(.timedOut)),
+                       "The download stopped making progress. Check your connection and free disk space.")
     }
 
     func testAFailedDownloadUsesTheWording() async throws {

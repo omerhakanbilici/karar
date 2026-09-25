@@ -115,9 +115,11 @@ struct OllayaClient: Sendable {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try? JSONEncoder().encode(["model": model])
-            // The daemon only sends a line every ~10 MB, so the session's default 60 s idle
-            // timeout can trip on a slow connection well before the pull itself stalls.
-            request.timeoutInterval = 3600
+            // The request timeout is URLSession's idle timeout (time between received bytes), so
+            // it doubles as the stall detector: the daemon sends a line about every 10 MB, so
+            // 120 s of silence means the pull stalled (disk full, network gone) unless the
+            // connection is slower than ~85 KB/s.
+            request.timeoutInterval = 120
             return request
         }()
         return AsyncThrowingStream { continuation in

@@ -240,6 +240,9 @@ final class AppModel {
 
     /// A failed pull's text on its row (spec §5), by error code (docs/api.md §4.2, §7.6).
     static func pullMessage(_ error: Error) -> String {
+        if let error = error as? URLError, error.code == .timedOut {
+            return "The download stopped making progress. Check your connection and free disk space."
+        }
         if error is URLError { return "Lost the connection to Ollaya." }
         guard let error = error as? OllayaError else { return error.localizedDescription }
         switch error.code {
