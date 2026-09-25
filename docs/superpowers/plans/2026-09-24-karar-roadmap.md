@@ -130,6 +130,31 @@ Plans are written at the start of their phase, not all up front, so they match t
   Settings → Privacy & Security with the Open Anyway button. The user takes (or approves) the
   screenshots; they come from a real first launch of the released DMG.
 
+- [ ] **Phase 8 — Toolbar overflow (») fix. Must fix before anyone else sees the app much.**
+  The user (Phase 6 session): "people must not see the app like this; it looks very, very bad".
+  Symptom: an overflow chevron (») on the right of the toolbar while Advanced (the inspector) is
+  open, when the sidebar is hidden/shown, and while Advanced opens; the sidebar button disappears
+  into it. v0.1.2 (items leading, no flexible item) did not fix it for the user. Read the Phase 6
+  notes on the toolbar first (what was tried, how it was reproduced).
+  Start with systematic debugging and evidence from the user's own steps (ask them to show the
+  exact clicks; record a region video). Reproduce with a throwaway XCUITest (click "Hide Sidebar",
+  ⌥⌘I; Automation Mode prompt approved by the user) + `screencapture -v -V<s> -R…` + ffmpeg scene
+  frames, in both SDKs (local 27 and the runner's 26.5 via `-Wl,-platform_version`).
+  Options to weigh (the user is open to bigger changes, not only toolbar tweaks):
+  1. No animation: drive the sidebar and the inspector without animation (own sidebar button with
+     `columnVisibility` + `.toolbar(removing: .sidebarToggle)`, changes inside a transaction with
+     animations disabled), if the » only lives during the animation.
+  2. Move the Advanced control out of the toolbar (e.g. into the content above the answers, a
+     segmented "Answers | Questions" switch, the inspector's own header, a menu item with ⌥⌘I).
+  3. Replace `.inspector` with a plain trailing column (HStack/HSplitView) so the toolbar gets no
+     inspector section — the » only appears with the inspector open.
+  4. Fewer/smaller toolbar items: model and question set as pickers in the content (above the
+     editor) or in the sidebar; Pin as a button next to the answers.
+  Pick with the user after showing each candidate as screenshots/frames.
+  *Acceptance:* no » in any frame at 60 fps for: open/close Advanced; hide/show the sidebar with
+  Advanced on and off; resizing down to the minimum width; both SDKs, light and dark; the user
+  confirms on the released build. Then refresh README and site screenshots and release.
+
 ## After v1 (not scheduled)
 
 Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
@@ -329,6 +354,8 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   the sidebar button into the overflow; `.primaryAction` does not move items right. So the items
   now sit on the leading side with no flexible item (v0.1.2). Left: showing the sidebar
   again with the inspector open flashes » for ~0.3 s in every layout tried (system animation).
+  The user still sees » with v0.1.2 ("still the same"; moving the items left did not help in daily
+  use) — open, see Phase 8.
 - Phase 6, UI tests (local, 6/6 pass in ~45 s): (1) Automation Mode must be approved in the prompt
   once per session; without it the runner fails after 60 s with "Timed out while enabling automation
   mode", and `automationmodetool status` says "disabled" even after approving. (2) The earlier
@@ -347,7 +374,7 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
 - Phase 6, Gatekeeper, seen by the user on their own account (macOS 27) with the v0.1.0 DMG: first
   launch shows "“Karar.app” Not Opened — Apple could not verify “Karar.app” is free of malware…"
   with Done / Move to Bin; System Settings → Privacy & Security → Open Anyway then opens it. Same
-  steps as the README. A clean-account run (download in Safari → onboarding → a live answer) was
-  offered to the user.
+  steps as the README. Clean account (user, same day): download → Open Anyway → onboarding → a live
+  answer worked without problems.
 - Phase 6, screenshots (v0.1.1): the README images are now 2× from the built-in display (2200×1400,
   2560×1560) with the window activated first; `-NSWindow Frame` works there.
