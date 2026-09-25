@@ -8,9 +8,9 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            // A daemon that has failed for good (the one automatic restart already spent) needs
-            // MainView's Retry button even mid-onboarding, so it is checked first.
-            if case .failed = app.daemon.state {
+            // A daemon that failed or found the port taken needs MainView's banner even
+            // mid-onboarding, so it is checked first.
+            if !app.daemon.state.isRunning, app.daemon.state != .starting {
                 MainView(app: app)
             } else if app.isOnboarding {
                 OnboardingView(app: app)

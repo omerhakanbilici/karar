@@ -8,7 +8,12 @@ final class Daemon {
     enum State: Equatable {
         case starting
         case running(owned: Bool)
+        case portInUse         // something that is not Ollaya answers on 11435 (spec §5)
         case failed(String)
+
+        var isRunning: Bool {
+            if case .running = self { true } else { false }
+        }
     }
 
     typealias Probe = @MainActor () async -> Liveness
@@ -37,7 +42,7 @@ final class Daemon {
         state = .starting
         switch await probe() {
         case .ollaya: state = .running(owned: false)
-        case .other: state = .failed("Port 11435 is in use by another program.")
+        case .other: state = .portInUse
         case .none: await launchAndWait()
         }
     }
@@ -91,16 +96,28 @@ extension Daemon {
             .flatMap { try? String(contentsOf: $0, encoding: .utf8) }?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-    /// Starts `Contents/MacOS/ollaya serve`, logging to ~/Library/Logs/Karar/ollaya.log.
+    /// Where a daemon Karar starts writes its output.
+    nonisolated static let logURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+        .appending(path: "Logs/Karar/ollaya.log")
+
+    /// Keeps the log bounded: past `limit` bytes it becomes `<name>.1`, replacing an older one.
+    nonisolated static func rotateLog(at url: URL, limit: Int) {
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+        guard size > limit else { return }
+        let old = url.appendingPathExtension("1")
+        try? FileManager.default.removeItem(at: old)
+        try? FileManager.default.moveItem(at: url, to: old)
+    }
+
+    /// Starts `Contents/MacOS/ollaya serve`, logging to `logURL` (~/Library/Logs/Karar/ollaya.log).
     // ponytail: if Karar crashes the daemon is orphaned; the next launch adopts it and never stops it.
     static func bundledLaunch(onExit: @escaping @Sendable (Int32) -> Void) throws -> @MainActor () -> Void {
         guard let executable = Bundle.main.url(forAuxiliaryExecutable: "ollaya") else {
             throw CocoaError(.fileNoSuchFile)
         }
-        let logs = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-            .appending(path: "Logs/Karar")
-        try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
-        let logURL = logs.appending(path: "ollaya.log")
+        let logURL = logURL
+        try FileManager.default.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        rotateLog(at: logURL, limit: 10_000_000)
         if !FileManager.default.fileExists(atPath: logURL.path) {
             FileManager.default.createFile(atPath: logURL.path, contents: nil)
         }

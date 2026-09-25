@@ -121,6 +121,7 @@ final class OllayaClientTests: XCTestCase {
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(object["model"] as? String, "laya")
         XCTAssertEqual(object["state"] as? String, "Hi \"you\"")
+        XCTAssertEqual(object["keep_alive"] as? String, "30m")
     }
 
     func testStateIsTextUnlessItIsAJSONObjectOrArray() throws {

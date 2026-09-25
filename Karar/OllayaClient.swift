@@ -23,9 +23,14 @@ struct OllayaClient: Sendable {
         return decoder
     }()
 
+    /// How long the engine keeps a model loaded after a request (docs/api.md §6). The default is 5m;
+    /// reloading costs 2.5–3.3 s, so a longer pause in typing shouldn't pay it.
+    static let keepAlive = "30m"
+
     func liveness() async -> Liveness {
         var request = URLRequest(url: base)
-        request.timeoutInterval = 1
+        // A refused connection fails at once; only a listener that never answers waits this long.
+        request.timeoutInterval = 5
         do {
             let (data, response) = try await Self.session.data(for: request)
             return Self.classify(status: (response as? HTTPURLResponse)?.statusCode ?? 0, body: data)
@@ -64,6 +69,7 @@ struct OllayaClient: Sendable {
     /// order) reaches the server unchanged; encoding them as Swift dictionaries would reorder them.
     static func decideBody(model: String, state: String, questions: Data) throws -> Data {
         Data(#"{"model":"#.utf8) + (try JSONEncoder().encode(model))
+            + Data(#","keep_alive":"#.utf8) + (try JSONEncoder().encode(keepAlive))
             + Data(#","state":"#.utf8) + (try stateJSON(state))
             + Data(#","questions":"#.utf8) + questions + Data("}".utf8)
     }
@@ -80,6 +86,17 @@ struct OllayaClient: Sendable {
         var text = text
         while text.last?.isNewline == true { text.removeLast() }
         return try JSONEncoder().encode(text)
+    }
+
+    /// Loads a model before the first question (docs/api.md §7.3 "Load and unload": no `state`,
+    /// no `questions`), so the first answer doesn't wait for the load.
+    func load(model: String) async throws {
+        var request = URLRequest(url: base.appending(path: "api/decide"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["model": model, "keep_alive": Self.keepAlive])
+        let (data, response) = try await Self.session.data(for: request)
+        try Self.check(response, data)
     }
 
     /// The request as a Terminal command (inspector's "Copy as curl"). The body goes in single

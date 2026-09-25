@@ -52,7 +52,32 @@ final class DaemonTests: XCTestCase {
     func testReportsWhenAnotherProgramHasThePort() async {
         let daemon = makeDaemon(FakeEngine(), probe: { .other })
         await daemon.start()
-        XCTAssertEqual(daemon.state, .failed("Port 11435 is in use by another program."))
+        XCTAssertEqual(daemon.state, .portInUse)
+        XCTAssertFalse(daemon.state.isRunning)
+    }
+
+    func testTheLogRotatesPastItsLimit() throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = dir.appending(path: "ollaya.log")
+        try Data("old old old old".utf8).write(to: log)
+
+        Daemon.rotateLog(at: log, limit: 100)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: log.path), "under the limit: kept")
+
+        Daemon.rotateLog(at: log, limit: 10)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: log.path))
+        XCTAssertEqual(try String(contentsOf: dir.appending(path: "ollaya.log.1"), encoding: .utf8), "old old old old")
+
+        try Data("newer, and long enough".utf8).write(to: log)
+        Daemon.rotateLog(at: log, limit: 10)
+        XCTAssertEqual(try String(contentsOf: dir.appending(path: "ollaya.log.1"), encoding: .utf8),
+                       "newer, and long enough", "only one old log is kept")
+    }
+
+    func testTheLogLivesInLibraryLogs() {
+        XCTAssertTrue(Daemon.logURL.path.hasSuffix("Library/Logs/Karar/ollaya.log"), Daemon.logURL.path)
     }
 
     func testStartsTheBundledEngine() async {

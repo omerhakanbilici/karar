@@ -183,6 +183,8 @@ struct MainView: View {
             } actions: {
                 Button("Retry") { Task { await app.daemon.start() } }
             }
+        case .portInUse:
+            ContentUnavailableView("Port 11435 is in use by another program", systemImage: "exclamationmark.triangle")
         case .running:
             if app.models.isEmpty {
                 ContentUnavailableView {
