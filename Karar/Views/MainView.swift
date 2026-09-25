@@ -7,9 +7,6 @@ struct MainView: View {
     @State private var showsDownloadSheet = false
     @State private var modelPendingDelete: String?
     @AppStorage("advanced") private var advanced = false
-    /// Follows `advanced`, but only after `growWindowIfNeeded()`: the inspector crashes AppKit in
-    /// narrower windows.
-    @State private var showsInspector = false
     /// `.inspector` can't settle below ~960–980 pt of window width once Advanced is on (bisected in
     /// fix round 2); 1050 keeps margin. Shared by `.frame(minWidth:)` and `growWindowIfNeeded()` below.
     private static let advancedMinWidth: CGFloat = 1050
@@ -87,21 +84,19 @@ struct MainView: View {
                 Menu {
                     Picker("Question set", selection: Binding<Preset?>(
                         get: { app.isCustom ? nil : app.preset },
-                        set: { choice in
-                            if let choice {
-                                app.preset = choice
-                            } else {
-                                app.useMyQuestions()
-                                advanced = true
-                            }
-                        }
+                        set: { if let choice = $0 { app.preset = choice } }
                     )) {
                         ForEach(Preset.all) { Text($0.name).tag(Optional($0)) }
-                        Divider()
-                        Text("My questions…").tag(Preset?.none)
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
+                    Divider()
+                    // A button, not a Picker tag: re-picking an already-selected tag fires no setter,
+                    // so a tagged "My questions…" row silently no-ops when it's already selected.
+                    Button("My questions…") {
+                        app.useMyQuestions()
+                        advancedBinding.wrappedValue = true
+                    }
                 } label: {
                     Label(app.isCustom ? "My questions" : app.preset.name, systemImage: "list.bullet.rectangle")
                         .labelStyle(.titleAndIcon)
@@ -119,7 +114,7 @@ struct MainView: View {
                 .help("Pin the text and its answers to the sidebar (⌘↩)")
             }
             ToolbarItem {
-                Toggle(isOn: $advanced) {
+                Toggle(isOn: advancedBinding) {
                     Label("Advanced", systemImage: "slider.horizontal.3")
                 }
                 .toggleStyle(.button)
@@ -129,21 +124,6 @@ struct MainView: View {
         // Only constrains a new window (launch, or a saved/injected frame smaller than this) — never
         // an already-open one; growWindowIfNeeded() below handles that case.
         .frame(minWidth: advanced ? Self.advancedMinWidth : 720, minHeight: 480)
-        // `initial: true` also syncs showsInspector at launch — harmless no-op there since
-        // `.frame(minWidth:)` already sized the window before it appeared.
-        .onChange(of: advanced, initial: true) { _, newValue in
-            if newValue {
-                growWindowIfNeeded()
-                showsInspector = true
-            } else {
-                showsInspector = false
-            }
-        }
-        // Mirrors back into `advanced` if the inspector's own chrome ever dismisses it directly;
-        // guarded so it can't ping-pong with the handler above.
-        .onChange(of: showsInspector) { _, newValue in
-            if newValue != advanced { advanced = newValue }
-        }
         .sheet(isPresented: $showsDownloadSheet) {
             DownloadSheet(app: app)
         }
@@ -167,6 +147,15 @@ struct MainView: View {
         } message: {
             Text(app.deleteError ?? "")
         }
+    }
+
+    /// Single source of truth for Advanced/the inspector: growing the window happens here, once,
+    /// before turning either on — whichever side (toolbar Toggle or the inspector's own chrome) flips it.
+    private var advancedBinding: Binding<Bool> {
+        Binding(get: { advanced }, set: { newValue in
+            if newValue { growWindowIfNeeded() }
+            advanced = newValue
+        })
     }
 
     /// Grows an already-open window to `advancedMinWidth` before the inspector appears; SwiftUI
@@ -211,7 +200,7 @@ struct MainView: View {
                     Divider()
                     if advanced { cards } else { results }
                 }
-                .inspector(isPresented: $showsInspector) {
+                .inspector(isPresented: advancedBinding) {
                     InspectorView(app: app)
                         .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
                 }
