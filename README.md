@@ -47,6 +47,8 @@ app. If one of them is already running, Karar uses that engine and leaves it run
 2. Open Karar. Karar is not notarized by Apple, so macOS says it can't check the app for malware.
    Click **Done**. (On macOS 14 the button is **OK**; you can also Control-click Karar and choose
    **Open**.)
+
+   <img alt="“Karar.app” Not Opened: Apple could not verify “Karar.app” is free of malware, with the buttons Done and Move to Bin" src="docs/screenshots/not-opened.png" width="253">
 3. Open **System Settings → Privacy & Security**, scroll down to the message about Karar and click
    **Open Anyway**, then confirm. You only do this once.
 

@@ -102,7 +102,7 @@ li { margin: 8px 0; }
 li p { margin: 0 0 12px; }
 ol > li { margin-bottom: 28px; }
 
-.dialog { width: 260px; }
+.dialog { width: 253px; border-radius: 13px; }
 .settings { width: 467px; }
 
 code {
