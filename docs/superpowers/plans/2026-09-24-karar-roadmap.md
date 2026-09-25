@@ -119,6 +119,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   (`automationmodetool`) — the user does that; never change the system setting yourself.
 
 - [ ] **Phase 7 — Website.**
+  Plan: [`2026-09-25-phase-7-website.md`](2026-09-25-phase-7-website.md)
   `site/index.html` + `style.css` per spec §8, `.github/workflows/pages.yml`. **Ask the user** to set
   Settings → Pages → Source = GitHub Actions.
   *Acceptance:* `https://omerhakanbilici.github.io/karar/` is live, the Download button fetches the
