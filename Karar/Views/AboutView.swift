@@ -6,9 +6,16 @@ struct AboutView: View {
     @Environment(\.openWindow) private var openWindow
 
     struct Licence: Identifiable, Codable, Hashable {
+        /// "Karar" or "Ollaya": disambiguates windows that would otherwise share a title (both a
+        /// Karar and an Ollaya licence are titled "Licence"), and survives a bundle move (DMG →
+        /// /Applications, translocation) unlike a stored absolute URL.
+        let owner: String
         let title: String
-        let url: URL?
-        var id: String { url?.path ?? title }
+        let name: String
+        let subdirectory: String?
+        var id: String { (subdirectory ?? "") + "/" + name }
+        var url: URL? { Bundle.main.url(forResource: name, withExtension: nil, subdirectory: subdirectory) }
+        var windowTitle: String { "\(owner) \(title)" }
     }
 
     /// Catalog models grouped by licence, licences and models in catalog order.
@@ -53,16 +60,16 @@ struct AboutView: View {
                 GridRow {
                     label("Karar")
                     licences("Apache-2.0", [
-                        Licence(title: "Licence", url: Bundle.main.url(forResource: "LICENSE", withExtension: nil)),
-                        Licence(title: "Notice", url: Bundle.main.url(forResource: "NOTICE", withExtension: nil)),
+                        Licence(owner: "Karar", title: "Licence", name: "LICENSE", subdirectory: nil),
+                        Licence(owner: "Karar", title: "Notice", name: "NOTICE", subdirectory: nil),
                     ])
                 }
                 GridRow {
                     label("Ollaya")
                     licences("Apache-2.0", [
-                        Licence(title: "Licence", url: ollaya("LICENSE")),
-                        Licence(title: "Third-party notices", url: ollaya("THIRD_PARTY_NOTICES")),
-                        Licence(title: "ONNX Runtime notices", url: ollaya("onnxruntime-ThirdPartyNotices.txt")),
+                        Licence(owner: "Ollaya", title: "Licence", name: "LICENSE", subdirectory: "Ollaya"),
+                        Licence(owner: "Ollaya", title: "Third-party notices", name: "THIRD_PARTY_NOTICES", subdirectory: "Ollaya"),
+                        Licence(owner: "Ollaya", title: "ONNX Runtime notices", name: "onnxruntime-ThirdPartyNotices.txt", subdirectory: "Ollaya"),
                     ])
                 }
                 GridRow {
@@ -98,10 +105,6 @@ struct AboutView: View {
         case .running, .starting: "Starting…"
         case .portInUse, .failed: "Not running"
         }
-    }
-
-    private func ollaya(_ name: String) -> URL? {
-        Bundle.main.url(forResource: name, withExtension: nil, subdirectory: "Ollaya")
     }
 
     private func label(_ text: String) -> some View {
@@ -150,6 +153,6 @@ struct LicenceView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 480, minHeight: 320)
-        .navigationTitle(licence.title)
+        .navigationTitle(licence.windowTitle)
     }
 }

@@ -14,7 +14,8 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView {
-            // Clicking empty space would deselect; there is always a model while any is installed.
+            // A plain Binding(app.model): clicking empty space would otherwise deselect, and the
+            // model can be nil on its own (missingModel) without the list clearing the row.
             List(selection: Binding(get: { app.model }, set: { if let name = $0 { app.model = name } })) {
                 Section("Models") {
                     ForEach(app.models, id: \.name) { model in
@@ -179,19 +180,14 @@ struct MainView: View {
         if app.daemon.state == .starting {
             ProgressView("Starting Ollaya…")
         } else if app.models.isEmpty {
-            let reachable = app.daemon.state.isRunning && app.modelsError == nil
+            // Empty models + running + no error is always onboarding or the startup spinner, never
+            // a reachable-but-empty state, so there is only this one description, no action.
             VStack(spacing: 0) {
                 banner
                 ContentUnavailableView {
                     Label("No models", systemImage: "shippingbox")
                 } description: {
-                    // Unreachable: the banner above says why.
-                    Text(reachable ? "Download a model to ask questions about your text."
-                                   : "Installed models appear here once Karar can reach Ollaya.")
-                } actions: {
-                    if reachable {
-                        Button("Download model…") { showsDownloadSheet = true }
-                    }
+                    Text("Installed models appear here once Karar can reach Ollaya.")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -233,7 +229,9 @@ struct MainView: View {
             }
         case .running where app.modelsError != nil:
             ErrorBanner(title: "Could not load the installed models", message: app.modelsError ?? "") {
-                Button("Try Again") { Task { await app.refreshModels() } }
+                // An adopted CLI daemon that died needs re-adopting or relaunching, not just a
+                // refresh; start() is a no-op while Karar's own daemon is already running.
+                Button("Try Again") { Task { await app.daemon.start(); await app.refreshModels() } }
             }
         default:
             EmptyView()

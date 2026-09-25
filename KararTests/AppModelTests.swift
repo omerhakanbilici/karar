@@ -219,6 +219,22 @@ final class AppModelTests: XCTestCase {
         XCTAssertFalse(app.isUpdating)
     }
 
+    /// A router's *target* can be missing while the router itself stays installed (docs/api.md §3,
+    /// §7.7: deleting a target keeps the router). The refresh then still lists the selected router,
+    /// so the missing-model note doesn't apply: show the engine's own message instead.
+    func testARoutersMissingTargetShowsTheEnginesMessage() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        fake.failure = OllayaError(
+            error: "model \"laya:en\" not found, try pulling it first (routed from \"laya:latest\")",
+            code: "MODEL_NOT_FOUND")
+        app.text = "Hello"
+        await waitUntil { !app.isUpdating }
+        XCTAssertTrue(fake.installed.contains("laya:en"), "the router itself is still installed")
+        XCTAssertEqual(app.error, "model \"laya:en\" not found, try pulling it first (routed from \"laya:latest\")")
+        XCTAssertEqual(app.model, "laya:en")
+    }
+
     func testDeletingTheSelectedModelInKararPicksTheNextOne() async {
         let fake = FakeOllaya()
         let app = makeApp(fake)

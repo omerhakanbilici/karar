@@ -1,7 +1,8 @@
 import Foundation
 import Observation
 
-/// The main window's state. The `Daemon` comes from `AppDelegate`, which alone starts and stops it.
+/// The main window's state. The `Daemon` comes from `AppDelegate`; the user's Restart/Try Again
+/// buttons also start and stop it.
 @MainActor @Observable
 final class AppModel {
     typealias Decide = @MainActor (_ model: String, _ state: String, _ questions: Data) async throws -> DecideResponse
@@ -317,9 +318,11 @@ final class AppModel {
                 isUpdating = false
                 if (error as? OllayaError)?.code == "MODEL_NOT_FOUND" {
                     // Deleted outside Karar (spec §5): the refresh clears the selection, and the
-                    // missing-model note replaces this message.
-                    self.error = nil
+                    // missing-model note replaces this message. But a router's target can be
+                    // missing while the router itself stays selected (docs/api.md §3, §7.7); the
+                    // refresh then leaves `model` unchanged, so show the engine's message instead.
                     await refreshModels()
+                    if !Task.isCancelled { show(error) }
                 } else {
                     show(error)
                 }

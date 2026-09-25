@@ -248,9 +248,14 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   (python http.server) gives a 404 pull and `http://127.0.0.1:9` a 502; with a registry override
   `/api/tags` names are fully qualified (`ollaya.dev/library/laya:en`), so "Installed" doesn't match.
 - Deferred from Phase 5 reviews: with no models at all the toolbar reads "Choose a model"; licence
-  windows re-read their file on each open; `preload()` is an untracked best-effort task; no test for
-  `MODEL_NOT_FOUND` from a router whose target is missing; `modelsError ?? ""` is redundant.
+  windows re-read their file on each open; `preload()` is an untracked best-effort task;
+  `modelsError ?? ""` is redundant; ⇧⌘D lives on the sidebar button, not the menu bar, and may not
+  work with the sidebar collapsed; preload keeps each picked model loaded for 30 m (a router loads
+  both targets, ~1.5 GB), which can evict the user's own models on an adopted daemon.
 - UI tests (Phase 6): XCUITest drives the real mouse and keyboard while it runs (don't use the Mac
   meanwhile) and does not work while the screen is locked.
+- Phase 6: CI needs Xcode 26+ for `AppIcon.icon`; the About link `github.com/omerhakanbilici/karar`
+  must match the repo; timing-based tests (a 50 ms ordering sleep, a 2 s `waitUntil`) may be flaky
+  on shared runners.
 - Phase 4: the `laya` router sent a Turkish ticket to `laya:multilingual` with the reason "Latin
   script but language looks like 'it'" (routing is right, language guess is not).

@@ -11,10 +11,11 @@ slow answer "another program". `AppModel` learns to show a failed `/api/tags` (`
 clear a selection deleted outside Karar (`missingModel`), to leave onboarding when the CLI adds a
 model, to ask again after an engine restart, to word pull errors by code, and to preload the
 selected model with a longer `keep_alive`. A new `ErrorBanner` sits at the top of the detail
-column. `AboutView` is a second `Window` scene opened from the app menu. The icon is drawn by a
-small Swift script into `Karar/Assets.xcassets`.
+column. `AboutView` is a second `Window` scene opened from the app menu, and each licence text opens
+in its own `WindowGroup(for: AboutView.Licence.self)` window. The icon is an Icon Composer document
+(`Karar/AppIcon.icon`).
 
-**Tech Stack:** Swift 6, SwiftUI, Foundation, CoreGraphics (icon script only), XCTest, XcodeGen, Xcode 27.
+**Tech Stack:** Swift 6, SwiftUI, Foundation, XCTest, XcodeGen, Xcode 27.
 
 ## Global Constraints
 
@@ -131,12 +132,13 @@ disappear or jump in an empty state, line breaks in live-updating text, light an
   text is worded by code: `REGISTRY_ERROR`, `DIGEST_MISMATCH`, `STORAGE_ERROR`, `MODEL_NOT_FOUND`,
   a lost connection to Ollaya; anything else shows the engine's message.
 - **Keyboard shortcuts:** ⌥⌘I Advanced (Apple's inspector shortcut), ⇧⌘D Download model… (sidebar
-  button), Esc closes the download sheet and the licence sheet. ⌘↩ (pin) exists.
+  button), Esc closes the download sheet. ⌘↩ (pin) exists.
 - **About** (spec §3.3): icon, name, "A Mac app for Ollaya", version (build), engine (bundled
   version + what is running), licences (Karar Apache-2.0: LICENSE, NOTICE; Ollaya Apache-2.0:
   LICENSE, third-party notices, ONNX Runtime notices; models grouped by licence from
   `Catalog.json`), links (Karar on GitHub, ollaya.dev), "not affiliated" line. Licence texts open
-  in a sheet, drawn lazily line by line (the notices are half a megabyte).
+  in their own window, not a sheet (the 640 pt sheet overflowed the 440 pt About), drawn lazily
+  line by line (the notices are half a megabyte).
 - **Icon:** a plain balance scale, beam tilted ~7° so the left pan hangs lower, no sword or
   blindfold, white on an orange gradient, with a dark variant (orange scale on warm charcoal). An
   Icon Composer document `Karar/AppIcon.icon` (see Task 6 for why not an asset catalog).

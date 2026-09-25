@@ -26,6 +26,9 @@ struct RootView: View {
             await app.connect()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // Skip while the daemon isn't up yet (e.g. still `.starting` at launch): a refresh now
+            // would just fail and flip the startup spinner to MainView too early.
+            guard app.daemon.state.isRunning else { return }
             Task { await app.refreshModels() }
         }
     }

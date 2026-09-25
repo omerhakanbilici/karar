@@ -59,10 +59,12 @@ struct KararApp: App {
             AboutView(app: appDelegate.app)
         }
         .windowResizability(.contentSize)
+        .commandsRemoved()
         WindowGroup(for: AboutView.Licence.self) { $licence in
             if let licence { LicenceView(licence: licence) }
         }
         .defaultSize(width: 640, height: 520)
+        .commandsRemoved()
     }
 }
 
