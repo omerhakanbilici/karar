@@ -77,7 +77,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   little lower), no sword or blindfold; white on an orange background. An original drawing, not an
   SF Symbol. Its orange need not match the in-app truncation warning's system orange.
 
-- [ ] **Phase 6 — Release: DMG, CI, repo docs, publish.**
+- [x] **Phase 6 — Release: DMG, CI, repo docs, publish.**
   Plan: [`2026-09-25-phase-6-release.md`](2026-09-25-phase-6-release.md)
   `scripts/make-dmg.sh` (always `Karar.dmg`), `scripts/smoke.sh`, `.github/workflows/release.yml`
   (tag `v*` → fetch Ollaya → test → Release build → `Karar.dmg` → GitHub Release), `README.md`,
@@ -123,6 +123,12 @@ Plans are written at the start of their phase, not all up front, so they match t
   Settings → Pages → Source = GitHub Actions.
   *Acceptance:* `https://omerhakanbilici.github.io/karar/` is live, the Download button fetches the
   DMG, both themes render correctly.
+
+  *Also (user, Phase 6 session):* a normal user will struggle to find Open Anyway, so the site's
+  "First launch" section shows the two things macOS puts in the way, each with a screenshot: the
+  "“Karar.app” Not Opened — Apple could not verify…" dialog (Done / Move to Bin) and System
+  Settings → Privacy & Security with the Open Anyway button. The user takes (or approves) the
+  screenshots; they come from a real first launch of the released DMG.
 
 ## After v1 (not scheduled)
 
@@ -301,3 +307,42 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   activate` before `screencapture` avoids the inactive (grey) toolbar.
 - Phase 6: the router's `/api/tags` name is `laya:latest`, so the sidebar and toolbar say `laya:latest`,
   not `laya`.
+- Phase 6, release: v0.1.0 and v0.1.1 were built on the `macos-26` runner with Xcode 26.6 (SDK macOS
+  26.5, `DTXcode` 2660); this Mac has Xcode 27 (SDK 27) only. SwiftUI keys some behaviour on the SDK
+  the app was linked against, so a local build can look different from the DMG. To see the DMG's
+  behaviour locally: `xcodebuild … -derivedDataPath <scratch> ENABLE_DEBUG_DYLIB=NO
+  'OTHER_LDFLAGS=-Wl,-platform_version,macos,14.0,26.5' build` (check with `vtool -show-build`).
+  Don't patch a built app with `vtool` instead: the re-signed copy fails library validation, and
+  with the same bundle ID LaunchServices may pick that broken copy for later launches ("Karar cannot
+  be opened because of a problem").
+- Phase 6, toolbar (fixed in v0.1.1): built with Xcode 26, both toolbar menus were icon-only at every
+  width (SwiftUI ignored `.labelStyle(.titleAndIcon)` inside the Menu's label; Xcode 27 honours it,
+  which is why the v0.1.0 README shots had labels). The style now sits on the Menu. With labels, the
+  window title left too little room: at 720 pt with `laya:multilingual` the Question set menu went
+  into the overflow (»). The title is removed from the toolbar on macOS 15+ (`toolbar(removing:
+  .title)`; it stays in the Window menu) and a `ToolbarItem { Spacer() }` keeps the items trailing
+  (`.primaryAction` did not). Checked at 720, 877 and 1100 pt, light and dark, with both SDKs. The
+  brief » when opening Advanced was not seen after the fix in either SDK at 60 fps (region video,
+  877 → 1050 pt growth and 1050 pt without growth); the v0.1.0 build was not recorded.
+- Phase 6, UI tests (local, 6/6 pass in ~45 s): (1) Automation Mode must be approved in the prompt
+  once per session; without it the runner fails after 60 s with "Timed out while enabling automation
+  mode", and `automationmodetool status` says "disabled" even after approving. (2) The earlier
+  10-minute hang was an XCTest deadlock: with `continueAfterFailure = false`, a failed assert in an
+  async `@MainActor` test runs the async `tearDown` from inside the test and waits on the main actor
+  forever (stack: `_interruptTest` → `_performTearDownSequence…` → `CFRunLoopRun`). Tests now throw
+  (`XCTUnwrap`) where going on makes no sense. (3) `KararUITests-Runner` is App-Sandboxed:
+  `/usr/bin/python3` is an xcrun shim and refuses to run ("cannot be used within an App Sandbox"),
+  so the port test's stand-in server is a `/usr/bin/perl` listener, and `KararUITests.entitlements`
+  (network.server) is copied onto the runner. Its temp dir is
+  `~/Library/Containers/io.github.omerhakanbilici.KararUITests.xctrunner/Data/tmp`. (4) An app
+  launched by `XCUIApplication` does not get `XCTestConfigurationFilePath` (checked with `ps eww`),
+  so AppDelegate's unit-test guard does not stop its engine. (5) On macOS a static text's string is
+  its `value`, not its `label`. (6) Quit Karar (also `/Applications/Karar.app`) before a run: it
+  holds 11435 and setUp refuses to start.
+- Phase 6, Gatekeeper, seen by the user on their own account (macOS 27) with the v0.1.0 DMG: first
+  launch shows "“Karar.app” Not Opened — Apple could not verify “Karar.app” is free of malware…"
+  with Done / Move to Bin; System Settings → Privacy & Security → Open Anyway then opens it. Same
+  steps as the README. A clean-account run (download in Safari → onboarding → a live answer) was
+  offered to the user.
+- Phase 6, screenshots (v0.1.1): the README images are now 2× from the built-in display (2200×1400,
+  2560×1560) with the window activated first; `-NSWindow Frame` works there.
