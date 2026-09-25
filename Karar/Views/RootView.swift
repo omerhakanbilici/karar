@@ -30,7 +30,7 @@ struct RootView: View {
         }
     }
 
-    /// Until models have loaded once, a full-window spinner stands in for `MainView`. (A failed
-    /// daemon never reaches here: the `.failed` case above already routed to `MainView`.)
-    private var showsStartupProgress: Bool { !app.modelsLoaded }
+    /// Until models have loaded once, a full-window spinner stands in for `MainView`, unless that
+    /// load failed: `MainView`'s banner then says why. (A failed daemon never reaches here.)
+    private var showsStartupProgress: Bool { !app.modelsLoaded && app.modelsError == nil }
 }

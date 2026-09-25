@@ -29,6 +29,7 @@ struct DownloadSheet: View {
             .padding(16)
         }
         .frame(width: 600, height: 540)
+        .onExitCommand { dismiss() }
     }
 }
 

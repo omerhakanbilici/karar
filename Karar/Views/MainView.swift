@@ -4,6 +4,7 @@ import AppKit
 /// The main window (spec §3.2): installed models in the sidebar, the text on top, answers below.
 struct MainView: View {
     @Bindable var app: AppModel
+    @Environment(\.openURL) private var openURL
     @State private var showsDownloadSheet = false
     @State private var modelPendingDelete: String?
     @AppStorage("advanced") private var advanced = false
@@ -32,6 +33,8 @@ struct MainView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                    .help("Download model… (⇧⌘D)")
                 }
                 if !app.pins.isEmpty {
                     Section("Pinned") {
@@ -63,6 +66,7 @@ struct MainView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         } detail: {
             detail
+                .safeAreaInset(edge: .top, spacing: 0) { banner }
         }
         .toolbar {
             ToolbarItem {
@@ -75,7 +79,7 @@ struct MainView: View {
                     Divider()
                     Button("Download model…") { showsDownloadSheet = true }
                 } label: {
-                    Label(app.model ?? "No model", systemImage: "cpu")
+                    Label(app.model ?? "Choose a model", systemImage: "cpu")
                         .labelStyle(.titleAndIcon)
                 }
                 .help("Model")
@@ -118,7 +122,8 @@ struct MainView: View {
                     Label("Advanced", systemImage: "slider.horizontal.3")
                 }
                 .toggleStyle(.button)
-                .help("Edit the questions and inspect the response")
+                .keyboardShortcut("i", modifiers: [.command, .option])
+                .help("Edit the questions and inspect the response (⌥⌘I)")
             }
         }
         // Only constrains a new window (launch, or a saved/injected frame smaller than this) — never
@@ -172,41 +177,72 @@ struct MainView: View {
     }
 
     @ViewBuilder private var detail: some View {
-        switch app.daemon.state {
-        case .starting:
+        if app.daemon.state == .starting {
             ProgressView("Starting Ollaya…")
-        case .failed(let message):
+        } else if app.models.isEmpty {
+            let reachable = app.daemon.state.isRunning && app.modelsError == nil
             ContentUnavailableView {
-                Label("Ollaya is not running", systemImage: "exclamationmark.triangle")
+                Label("No models", systemImage: "shippingbox")
             } description: {
-                Text(message)
+                // Unreachable: the banner above says why.
+                Text(reachable ? "Download a model to ask questions about your text."
+                               : "Installed models appear here once Karar can reach Ollaya.")
             } actions: {
-                Button("Retry") { Task { await app.daemon.start() } }
-            }
-        case .portInUse:
-            ContentUnavailableView("Port 11435 is in use by another program", systemImage: "exclamationmark.triangle")
-        case .running:
-            if app.models.isEmpty {
-                ContentUnavailableView {
-                    Label("No models", systemImage: "shippingbox")
-                } actions: {
+                if reachable {
                     Button("Download model…") { showsDownloadSheet = true }
                 }
-            } else {
-                VStack(spacing: 0) {
-                    editor
-                        .padding([.horizontal, .top], 20)
-                    // Always reserve 30 pt for the counter or warning.
-                    tokenCounter
-                        .padding(.horizontal, 20)
-                    Divider()
-                    if advanced { cards } else { results }
-                }
-                .inspector(isPresented: advancedBinding) {
-                    InspectorView(app: app)
-                        .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
-                }
             }
+        } else {
+            VStack(spacing: 0) {
+                editor
+                    .padding([.horizontal, .top], 20)
+                // Always reserve 30 pt for the counter or warning.
+                tokenCounter
+                    .padding(.horizontal, 20)
+                Divider()
+                if advanced { cards } else { results }
+            }
+            .inspector(isPresented: advancedBinding) {
+                InspectorView(app: app)
+                    .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
+            }
+        }
+    }
+
+    /// Spec §5: the engine failed (message + Restart), the port is taken (how to free it), or the
+    /// installed models can't be listed. Retrying is always the user's click.
+    @ViewBuilder private var banner: some View {
+        switch app.daemon.state {
+        case .portInUse:
+            ErrorBanner(title: "Port 11435 is in use by another program",
+                        message: "Ollaya needs this port. Quit the program that uses it, then click Try Again. "
+                            + "To see which program it is, run lsof -i :11435 in Terminal.") {
+                Button("Try Again") { Task { await app.daemon.start() } }
+            }
+        case .failed(let message):
+            ErrorBanner(title: "Ollaya is not running", message: message) {
+                Button("Show Log") { openURL(Daemon.logURL) }
+                Button("Restart") { Task { await app.daemon.start() } }
+            }
+        case .running where app.modelsError != nil:
+            ErrorBanner(title: "Could not load the installed models", message: app.modelsError ?? "") {
+                Button("Try Again") { Task { await app.refreshModels() } }
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    /// Spec §5: the selected model was deleted outside Karar, so no model is selected.
+    private var noModelNote: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(app.missingModel.map { "\($0) is no longer installed." } ?? "No model is selected.")
+                    .font(.headline)
+                Text("Choose a model in the toolbar, or download one.")
+                    .foregroundStyle(.secondary)
+            }
+            Button("Download model…") { showsDownloadSheet = true }
         }
     }
 
@@ -232,7 +268,9 @@ struct MainView: View {
     private var results: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                if app.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if app.model == nil {
+                    noModelNote
+                } else if app.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text("Answers appear here as you type.")
                         .foregroundStyle(.secondary)
                 } else {
@@ -273,6 +311,7 @@ struct MainView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 answersHeader
+                if app.model == nil { noModelNote }
                 if let error = app.error {
                     Label(error, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.secondary)
