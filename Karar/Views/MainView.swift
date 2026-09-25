@@ -66,7 +66,6 @@ struct MainView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         } detail: {
             detail
-                .safeAreaInset(edge: .top, spacing: 0) { banner }
         }
         .toolbar {
             ToolbarItem {
@@ -181,19 +180,27 @@ struct MainView: View {
             ProgressView("Starting Ollaya…")
         } else if app.models.isEmpty {
             let reachable = app.daemon.state.isRunning && app.modelsError == nil
-            ContentUnavailableView {
-                Label("No models", systemImage: "shippingbox")
-            } description: {
-                // Unreachable: the banner above says why.
-                Text(reachable ? "Download a model to ask questions about your text."
-                               : "Installed models appear here once Karar can reach Ollaya.")
-            } actions: {
-                if reachable {
-                    Button("Download model…") { showsDownloadSheet = true }
+            VStack(spacing: 0) {
+                banner
+                ContentUnavailableView {
+                    Label("No models", systemImage: "shippingbox")
+                } description: {
+                    // Unreachable: the banner above says why.
+                    Text(reachable ? "Download a model to ask questions about your text."
+                                   : "Installed models appear here once Karar can reach Ollaya.")
+                } actions: {
+                    if reachable {
+                        Button("Download model…") { showsDownloadSheet = true }
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } else {
             VStack(spacing: 0) {
+                // Inside the view that carries .inspector, and with a line-limited message: a
+                // height-for-width text in a top safe-area inset loops AppKit's constraint passes
+                // (crash) and misplaces the content.
+                banner
                 editor
                     .padding([.horizontal, .top], 20)
                 // Always reserve 30 pt for the counter or warning.

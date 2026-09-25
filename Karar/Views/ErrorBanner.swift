@@ -17,7 +17,8 @@ struct ErrorBanner<Actions: View>: View {
                 Text(message)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(4)
+                    .help(message)
             }
             Spacer(minLength: 12)
             HStack(spacing: 8) { actions }
