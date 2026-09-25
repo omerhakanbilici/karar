@@ -323,7 +323,7 @@ struct MainView: View {
     /// Spec §3.2: the engine's token count for the last answer, never an estimate; the warning in
     /// system orange when the text was cut (§5).
     @ViewBuilder private var tokenCounter: some View {
-        Group {
+        ZStack(alignment: .trailing) {
             if let result = app.result, let tokens = result.usage?.inputTokens {
                 if result.stateTruncated == true {
                     Label("Text too long for \(result.model): only the first part was read",
