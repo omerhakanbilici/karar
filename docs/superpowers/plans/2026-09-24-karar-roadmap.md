@@ -132,6 +132,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   screenshots; they come from a real first launch of the released DMG.
 
 - [ ] **Phase 8 — Toolbar overflow (») fix. Must fix before anyone else sees the app much.**
+  Plan: [`2026-09-26-phase-8-toolbar-overflow.md`](2026-09-26-phase-8-toolbar-overflow.md)
   The user (Phase 6 session): "people must not see the app like this; it looks very, very bad".
   Symptom: an overflow chevron (») on the right of the toolbar while Advanced (the inspector) is
   open, when the sidebar is hidden/shown, and while Advanced opens; the sidebar button disappears
@@ -392,3 +393,20 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   follows the Mac's appearance, so phone width and light/dark need CDP
   (`Emulation.setDeviceMetricsOverride` + `setEmulatedMedia prefers-color-scheme`); Node 26's built-in
   `WebSocket` is enough, no packages.
+- Phase 8, root cause of the »: AppKit reveals the sidebar as if the detail needed the window's whole
+  `contentMinSize` plus the sidebar (220 pt). Below `min + 220` the non-animated reveal grows the
+  window (720 → 940), but the animated one lays the wider layout out inside the old window, shifted
+  left, and the toolbar's sidebar section drops the system toggle into the overflow until the
+  animation ends. Our `.frame(minWidth: advanced ? 1050 : 720)` kept the window at exactly that
+  minimum. Opening `.inspector` collapses and re-reveals the sidebar, so it hit the same rule. With
+  the inspector open, a window below ~960 pt crashed ("more Update Constraints in Window passes than
+  there are views in the window") — that was the real reason for the 1050 minimum. Fix (v0.1.3): the
+  inspector is a plain 320 pt column, no horizontal minimum (SwiftUI then derives 280 pt, 796 pt with
+  Advanced on); below ~515 pt with the sidebar shown, Pin/Advanced legitimately go into the overflow.
+- Phase 8, how it was measured: a throwaway `Probe.swift` (DEBUG, `KARAR_PROBE=1`) logged every change
+  of the split view items' window frames and each `NSToolbarItem.isVisible` from a 240 Hz timer; a
+  throwaway XCUITest clicked the real toolbar ("Advanced", "Hide Sidebar"/"Show Sidebar", ⌥⌘I) and
+  dragged the window edge (`click(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)`). Launched
+  directly (not by XCUITest), a ⌥⌘I or `defaults` flip of Advanced never reproduced the inspector
+  case; the XCUITest and the user's clicks did. `NSWindow.minSize` is tied to `contentMinSize`.
+  All test runs of Karar share the user's defaults domain, including `NSWindow Frame main`.
