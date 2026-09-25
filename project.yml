@@ -41,6 +41,7 @@ targets:
           mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya"
           cp "$src/share/doc/ollaya/"* "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/"
           cp "$src/VERSION" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/VERSION"
+          cp "$SRCROOT/LICENSE" "$SRCROOT/NOTICE" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/"
   KararTests:
     type: bundle.unit-test
     platform: macOS

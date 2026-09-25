@@ -52,5 +52,21 @@ struct KararApp: App {
         Window("Karar", id: "main") {
             RootView(app: appDelegate.app)
         }
+        .commands {
+            CommandGroup(replacing: .appInfo) { AboutButton() }
+        }
+        Window("About Karar", id: "about") {
+            AboutView(app: appDelegate.app)
+        }
+        .windowResizability(.contentSize)
+    }
+}
+
+/// Karar ▸ About Karar opens the About window instead of the standard panel (spec §3.3).
+private struct AboutButton: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("About Karar") { openWindow(id: "about") }
     }
 }
