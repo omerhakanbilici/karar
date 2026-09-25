@@ -20,6 +20,12 @@ ditto "$app" "$tmp/Karar/Karar.app"
 ln -s /Applications "$tmp/Karar/Applications"
 dmg="$root/Karar.dmg"
 rm -f "$dmg"
-hdiutil create -quiet -volname Karar -srcfolder "$tmp/Karar" -format UDZO "$dmg"
+attempt=1
+until hdiutil create -quiet -volname Karar -srcfolder "$tmp/Karar" -format UDZO "$dmg"; do
+  rm -f "$dmg"
+  [ "$attempt" -ge 3 ] && { echo "error: hdiutil create failed after $attempt attempts" >&2; exit 1; }
+  attempt=$((attempt + 1))
+  sleep 5
+done
 hdiutil verify -quiet "$dmg"
 echo "$dmg ($(du -h "$dmg" | cut -f1 | tr -d ' '))"
