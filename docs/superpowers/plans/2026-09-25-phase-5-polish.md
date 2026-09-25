@@ -127,9 +127,8 @@ disappear or jump in an empty state, line breaks in live-updating text, light an
   `Catalog.json`), links (Karar on GitHub, ollaya.dev), "not affiliated" line. Licence texts open
   in a sheet, drawn lazily line by line (the notices are half a megabyte).
 - **Icon:** a plain balance scale, beam tilted ~7° so the left pan hangs lower, no sword or
-  blindfold, white on an orange gradient plate (macOS icon grid: 824 pt plate with 185 pt corners
-  on a 1024 canvas, soft shadow). Drawn by `scripts/make-icon.swift` (committed, so the icon can be
-  re-rendered) into `Karar/Assets.xcassets/AppIcon.appiconset` (10 PNGs, 16–1024 px).
+  blindfold, white on an orange gradient, with a dark variant (orange scale on warm charcoal). An
+  Icon Composer document `Karar/AppIcon.icon` (see Task 6 for why not an asset catalog).
 
 ## File structure
 
@@ -145,7 +144,7 @@ disappear or jump in an empty state, line breaks in live-updating text, light an
 | `Karar/Views/DownloadSheet.swift` | Esc closes |
 | `Karar/Views/AboutView.swift` | new: About + licence sheet |
 | `project.yml` (+ `Karar.xcodeproj`) | copy `LICENSE`/`NOTICE` into Resources; `ASSETCATALOG_COMPILER_APPICON_NAME` |
-| `scripts/make-icon.swift`, `Karar/Assets.xcassets/**` | new: icon |
+| `Karar/AppIcon.icon/**` | new: icon (Icon Composer document; see Task 6) |
 | `KararTests/DaemonTests.swift`, `OllayaClientTests.swift`, `AppModelTests.swift`, `AboutTests.swift` | tests |
 | `docs/superpowers/plans/2026-09-24-karar-roadmap.md` | tick Phase 5, notes |
 
@@ -1212,144 +1211,34 @@ git commit -m "About window with versions, links and licences"
 
 ### Task 6: App icon (controller; show the user before committing)
 
+**Changed during execution (user's choice):** a classic `AppIcon.appiconset` cannot carry a dark
+variant on macOS (actool silently drops `luminosity: dark` images; checked), so the icon is an
+**Icon Composer document** instead: `Karar/AppIcon.icon` (`icon.json` + two SVG layers). actool
+compiles it into light (Aqua), dark (DarkAqua) and tintable renditions, with the system's Liquid
+Glass edges and shadows, plus a flattened `AppIcon.icns` and PNGs for macOS 14–15 (checked with
+`actool --minimum-deployment-target 14.0`). The SVGs are the source; no generator script.
+
 **Files:**
-- Create: `scripts/make-icon.swift`
-- Create: `Karar/Assets.xcassets/Contents.json`, `Karar/Assets.xcassets/AppIcon.appiconset/{Contents.json, icon_*.png}`
+- Create: `Karar/AppIcon.icon/icon.json`, `Karar/AppIcon.icon/Assets/{stand,beam}.svg`
 - Modify: `project.yml` (then `xcodegen generate`)
 
-- [ ] **Step 1: The drawing script**
-
-`scripts/make-icon.swift`:
-
-```swift
-// Renders Karar's app icon into Karar/Assets.xcassets/AppIcon.appiconset.
-// Run from the repo root: swift scripts/make-icon.swift
-import AppKit
-import ImageIO
-
-let set = URL(fileURLWithPath: "Karar/Assets.xcassets/AppIcon.appiconset")
-try FileManager.default.createDirectory(at: set, withIntermediateDirectories: true)
-
-func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> CGColor { CGColor(srgbRed: r, green: g, blue: b, alpha: 1) }
-
-/// A plain balance scale, white on an orange plate, on a 1024 × 1024 canvas (macOS icon grid:
-/// an 824 plate at 100 with 185 corners). The beam tilts so the left pan hangs a little lower.
-func draw(in ctx: CGContext) {
-    let plate = CGPath(roundedRect: CGRect(x: 100, y: 100, width: 824, height: 824),
-                       cornerWidth: 185, cornerHeight: 185, transform: nil)
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -12), blur: 28, color: CGColor(gray: 0, alpha: 0.3))
-    ctx.addPath(plate)
-    ctx.setFillColor(rgb(0.93, 0.45, 0.10))
-    ctx.fillPath()
-    ctx.restoreGState()
-
-    ctx.saveGState()
-    ctx.addPath(plate)
-    ctx.clip()
-    let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB),
-                              colors: [rgb(1.0, 0.66, 0.25), rgb(0.93, 0.42, 0.08)] as CFArray, locations: [0, 1])!
-    ctx.drawLinearGradient(gradient, start: CGPoint(x: 512, y: 924), end: CGPoint(x: 512, y: 100), options: [])
-    ctx.restoreGState()
-
-    ctx.saveGState()
-    ctx.translateBy(x: 0, y: 24)   // optical centre sits a little above the middle
-    ctx.setShadow(offset: CGSize(width: 0, height: -6), blur: 14, color: CGColor(gray: 0, alpha: 0.18))
-    ctx.beginTransparencyLayer(auxiliaryInfo: nil)   // one shadow for the whole scale
-    ctx.setFillColor(CGColor(gray: 1, alpha: 1))
-    ctx.setStrokeColor(CGColor(gray: 1, alpha: 1))
-    ctx.setLineCap(.round)
-    ctx.setLineJoin(.round)
-
-    // Base and post.
-    ctx.addPath(CGPath(roundedRect: CGRect(x: 392, y: 236, width: 240, height: 40), cornerWidth: 20, cornerHeight: 20, transform: nil))
-    ctx.addPath(CGPath(roundedRect: CGRect(x: 494, y: 256, width: 36, height: 450), cornerWidth: 18, cornerHeight: 18, transform: nil))
-    ctx.fillPath()
-
-    // Beam and pivot.
-    let pivot = CGPoint(x: 512, y: 700)
-    let tilt = 7 * CGFloat.pi / 180, half: CGFloat = 230
-    let left = CGPoint(x: pivot.x - half * cos(tilt), y: pivot.y - half * sin(tilt))
-    let right = CGPoint(x: pivot.x + half * cos(tilt), y: pivot.y + half * sin(tilt))
-    ctx.setLineWidth(30)
-    ctx.move(to: left)
-    ctx.addLine(to: right)
-    ctx.strokePath()
-    ctx.fillEllipse(in: CGRect(x: pivot.x - 34, y: pivot.y - 34, width: 68, height: 68))
-
-    // Pans: two cords from each beam end, a shallow bowl under the rim. They hang straight down.
-    for end in [left, right] {
-        let rim = end.y - 200, rimHalf: CGFloat = 95
-        ctx.setLineWidth(10)
-        ctx.move(to: CGPoint(x: end.x - rimHalf + 8, y: rim))
-        ctx.addLine(to: end)
-        ctx.addLine(to: CGPoint(x: end.x + rimHalf - 8, y: rim))
-        ctx.strokePath()
-        let bowl = CGMutablePath()
-        bowl.move(to: CGPoint(x: end.x - rimHalf, y: rim))
-        bowl.addQuadCurve(to: CGPoint(x: end.x + rimHalf, y: rim), control: CGPoint(x: end.x, y: rim - 110))
-        bowl.closeSubpath()
-        ctx.addPath(bowl)
-        ctx.fillPath()
-    }
-    ctx.endTransparencyLayer()
-    ctx.restoreGState()
-}
-
-var images: [[String: String]] = []
-for size in [16, 32, 128, 256, 512] {
-    for scale in [1, 2] {
-        let px = size * scale
-        let ctx = CGContext(data: nil, width: px, height: px, bitsPerComponent: 8, bytesPerRow: 0,
-                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-        ctx.scaleBy(x: CGFloat(px) / 1024, y: CGFloat(px) / 1024)
-        draw(in: ctx)
-        let name = "icon_\(size)x\(size)\(scale == 2 ? "@2x" : "").png"
-        let dest = CGImageDestinationCreateWithURL(set.appending(path: name) as CFURL, "public.png" as CFString, 1, nil)!
-        CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
-        CGImageDestinationFinalize(dest)
-        images.append(["idiom": "mac", "size": "\(size)x\(size)", "scale": "\(scale)x", "filename": name])
-    }
-}
-let info = ["author": "xcode", "version": 1] as [String: Any]
-try JSONSerialization.data(withJSONObject: ["images": images, "info": info], options: [.prettyPrinted, .sortedKeys])
-    .write(to: set.appending(path: "Contents.json"))
-try JSONSerialization.data(withJSONObject: ["info": info], options: [.prettyPrinted, .sortedKeys])
-    .write(to: set.deletingLastPathComponent().appending(path: "Contents.json"))
-```
-
-Run: `swift scripts/make-icon.swift` and look at `icon_512x512@2x.png`, `icon_128x128.png`,
-`icon_32x32.png` (Read them). Iterate on proportions until the scale reads clearly at 32 px and
-looks balanced at 1024 px.
-
-- [ ] **Step 2: Use it**
-
-In `project.yml`, Karar target `settings.base`, add `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon`.
-Run `xcodegen generate`, build, relaunch. Check how this macOS draws it (it may frame
-non-conforming icons): render the icon Finder shows,
-
-```sh
-cat > $S/appicon.swift <<'EOF'
-import AppKit
-let icon = NSWorkspace.shared.icon(forFile: CommandLine.arguments[1])
-icon.size = NSSize(width: 512, height: 512)
-let rep = NSBitmapImageRep(data: icon.tiffRepresentation!)!
-try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: CommandLine.arguments[2]))
-EOF
-swift $S/appicon.swift build/Build/Products/Debug/Karar.app $S/finder-icon.png
-```
-
-and capture onboarding's welcome step (empty `OLLAYA_MODELS`) and About in light and dark.
-
-- [ ] **Step 3: Show the user** the 1024 px render, the Finder icon and the captures
-  (`SendUserFile`). Iterate on their feedback. **Do not commit before they approve.**
-
+- [ ] **Step 1: The document.** Two groups, front to back: `beam` (beam, pivot, cords, pans) and
+  `stand` (post, base), each with a neutral shadow, translucency 0.3 and specular on. Fill: an
+  orange linear gradient (`srgb:1.0,0.66,0.25` → `srgb:0.93,0.42,0.08`); dark: a warm charcoal
+  gradient (`srgb:0.22,0.19,0.17` → `srgb:0.09,0.08,0.07`) with the layers filled orange
+  (`srgb:1.0,0.58,0.18`). Beam tilted 7° so the left pan hangs lower. Preview every rendition with
+  `"/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" Karar/AppIcon.icon --export-image --output-file out.png --platform macOS --rendition <Default|Dark|TintedLight|TintedDark|ClearLight|ClearDark> --width 512 --height 512 --scale 1`
+  (`xcrun ictool` is a different tool).
+- [ ] **Step 2: Use it.** `project.yml`, Karar target `settings.base`:
+  `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon`. `xcodegen generate`, build, check
+  `Contents/Resources/Assets.car` and `AppIcon.icns` exist, relaunch, capture onboarding's welcome
+  step and About in light and dark, and render the Finder icon with `NSWorkspace.icon(forFile:)`.
+- [ ] **Step 3: Show the user** (done for the design: approved). Show the in-app captures too.
 - [ ] **Step 4: Run the full test suite, then commit**
 
 ```bash
-git add scripts/make-icon.swift Karar/Assets.xcassets project.yml Karar.xcodeproj
-git commit -m "App icon: a tilted balance scale, white on orange"
+git add Karar/AppIcon.icon project.yml Karar.xcodeproj
+git commit -m "App icon: a tilted balance scale, white on orange, with a dark variant"
 ```
 
 ---
