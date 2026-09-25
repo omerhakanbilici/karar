@@ -8,9 +8,8 @@ struct MainView: View {
     @State private var showsDownloadSheet = false
     @State private var modelPendingDelete: String?
     @AppStorage("advanced") private var advanced = false
-    /// `.inspector` can't settle below ~960–980 pt of window width once Advanced is on (bisected in
-    /// fix round 2); 1050 keeps margin. Shared by `.frame(minWidth:)` and `growWindowIfNeeded()` below.
-    private static let advancedMinWidth: CGFloat = 1050
+    /// Room for the sidebar, the question cards and the inspector column side by side.
+    private static let advancedWidth: CGFloat = 1050
 
     var body: some View {
         NavigationSplitView {
@@ -129,9 +128,11 @@ struct MainView: View {
             }
         }
         .removingToolbarTitle()
-        // Only constrains a new window (launch, or a saved/injected frame smaller than this) — never
-        // an already-open one; growWindowIfNeeded() below handles that case.
-        .frame(minWidth: advanced ? Self.advancedMinWidth : 720, minHeight: 480)
+        // No minimum width, on purpose: AppKit reveals the sidebar as if the detail needed the
+        // window's whole minimum width plus the sidebar, and its animated reveal lays that out
+        // inside a window narrower than min + 220 pt, pushing the sidebar button into the
+        // overflow (») until the animation ends. A very small window just squeezes the content.
+        .frame(minHeight: 480)
         .sheet(isPresented: $showsDownloadSheet) {
             DownloadSheet(app: app)
         }
@@ -157,8 +158,8 @@ struct MainView: View {
         }
     }
 
-    /// Single source of truth for Advanced/the inspector: growing the window happens here, once,
-    /// before turning either on — whichever side (toolbar Toggle or the inspector's own chrome) flips it.
+    /// Single source of truth for Advanced: growing the window happens here, once, before turning it
+    /// on — whichever control (toolbar Toggle, My questions…) flips it.
     private var advancedBinding: Binding<Bool> {
         Binding(get: { advanced }, set: { newValue in
             if newValue { growWindowIfNeeded() }
@@ -166,13 +167,13 @@ struct MainView: View {
         })
     }
 
-    /// Grows an already-open window to `advancedMinWidth` before the inspector appears; SwiftUI
+    /// Grows a narrow window to `advancedWidth` before the inspector column appears; SwiftUI
     /// can't resize an existing window, so this is AppKit, like `InspectorView`'s `NSPasteboard` use.
     private func growWindowIfNeeded() {
         guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }),
-              window.frame.width < Self.advancedMinWidth else { return }
+              window.frame.width < Self.advancedWidth else { return }
         var frame = window.frame
-        frame.size.width = Self.advancedMinWidth
+        frame.size.width = Self.advancedWidth
         let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? frame
         frame.origin.x = min(frame.origin.x, visible.maxX - frame.width)
         frame.origin.x = max(frame.origin.x, visible.minX)
@@ -195,22 +196,27 @@ struct MainView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } else {
-            VStack(spacing: 0) {
-                // Inside the view that carries .inspector, and with a line-limited message: a
-                // height-for-width text in a top safe-area inset loops AppKit's constraint passes
-                // (crash) and misplaces the content.
-                banner
-                editor
-                    .padding([.horizontal, .top], 20)
-                // Always reserve 30 pt for the counter or warning.
-                tokenCounter
-                    .padding(.horizontal, 20)
-                Divider()
-                if advanced { cards } else { results }
-            }
-            .inspector(isPresented: advancedBinding) {
-                InspectorView(app: app)
-                    .inspectorColumnWidth(min: 260, ideal: 320, max: 480)
+            HStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    // Inside the detail, and with a line-limited message: a height-for-width text in a
+                    // top safe-area inset loops AppKit's constraint passes (crash) and misplaces the content.
+                    banner
+                    editor
+                        .padding([.horizontal, .top], 20)
+                    // Always reserve 30 pt for the counter or warning.
+                    tokenCounter
+                        .padding(.horizontal, 20)
+                    Divider()
+                    if advanced { cards } else { results }
+                }
+                // A plain column, not `.inspector`: opening an inspector makes AppKit collapse and
+                // re-reveal the sidebar (the » explained at `.frame(minHeight:)`), and with one open
+                // a window below ~960 pt crashed in AppKit's constraint passes.
+                if advanced {
+                    Divider()
+                    InspectorView(app: app)
+                        .frame(width: 320)
+                }
             }
         }
     }
@@ -413,8 +419,8 @@ private extension View {
     /// 720 pt with "laya:multilingual" the Question set menu went into the overflow (»). The title
     /// stays in the Window menu and Mission Control. The items then sit on the leading side, on
     /// purpose: any flexible item that pushes them right (the title, `ToolbarItem { Spacer() }`,
-    /// `ToolbarSpacer(.flexible)`) sends the sidebar button into the overflow while the inspector
-    /// is open and the sidebar hidden. macOS 14 keeps the title (no API there).
+    /// `ToolbarSpacer(.flexible)`) sent the sidebar button into the overflow while the inspector
+    /// was open and the sidebar hidden. macOS 14 keeps the title (no API there).
     @ViewBuilder func removingToolbarTitle() -> some View {
         if #available(macOS 15, *) { toolbar(removing: .title) } else { self }
     }
