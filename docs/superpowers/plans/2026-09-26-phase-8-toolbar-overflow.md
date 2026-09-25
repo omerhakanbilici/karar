@@ -1,6 +1,6 @@
 # Phase 8 — Toolbar overflow (») fix
 
-> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [x]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [ ]`.
 
 **Goal:** no » in the toolbar in any frame when Advanced opens/closes, when the sidebar is hidden or
 shown (Advanced on and off), and while resizing the window down; both SDKs (27 local, 26.5 runner),
