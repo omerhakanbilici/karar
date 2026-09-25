@@ -48,7 +48,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   dir), a new user goes from launch to a live result without the terminal; interrupted download
   resumes on Retry.
 
-- [ ] **Phase 4 — Advanced mode.**
+- [x] **Phase 4 — Advanced mode.**
   Plan: [`2026-09-25-phase-4-advanced.md`](2026-09-25-phase-4-advanced.md)
   Advanced toggle (`@AppStorage`), editable question cards (choice / score / noul, add / remove),
   "My questions…", `.inspector` with routing, timings, tokens, response JSON, Copy JSON, Copy as
@@ -181,3 +181,21 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
 - Phase 4: `/api/decide` answers compact JSON, and `JSONSerialization` pretty-printing both
   reorders keys and prints `0.3237` as `0.32369999999999999`, so the inspector re-indents the
   bytes instead. The `guard` preset's `topic` options have `null` descriptions.
+- Phase 4: `.inspector` inside the NavigationSplitView detail aborts AppKit ("more Update
+  Constraints in Window passes than there are views in the window") when the window is narrower
+  than ~960–980 pt, whatever the detail shows. Karar keeps a 1050 pt window floor while Advanced is
+  on and grows an open window before showing the inspector (one binding drives the Toggle and the
+  inspector). Untried: `.inspector` on the NavigationSplitView itself, which might remove the floor.
+- Phase 4: a `422` rejects the whole request, so while one card is red the others show no answer
+  either. The inspector then says "No response yet."; the error is on the card.
+- Phase 4, for UI checks: DEBUG builds take `-KararText "…"`, `-KararQuestions '{…}'` (read raw:
+  the argument domain would parse `{…}` as a plist), `-KararAppearance dark|light` and `-advanced
+  YES`; `-AppleInterfaceStyle Dark` does not force dark. Launch with `-ApplePersistenceIgnoreState
+  YES` (after a crash the "reopen windows?" alert blocks quitting) and `"-NSWindow Frame main" "x y
+  w h …"` for a window size. Captures fail while the screen is locked. `pbpaste` in a shell without
+  `LANG` mangles non-ASCII (Karar's copied curl is fine).
+- Deferred from Phase 4 reviews: a hand-typed duplicate choice label is sent as a duplicate JSON
+  key (only "Add option" picks a free one); `growWindowIfNeeded()` doesn't cap the width on screens
+  narrower than 1050 pt; new `JSONDecoder` per key in `OrderedJSON.members`.
+- Phase 4: the `laya` router sent a Turkish ticket to `laya:multilingual` with the reason "Latin
+  script but language looks like 'it'" (routing is right, language guess is not).
