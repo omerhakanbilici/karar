@@ -68,6 +68,12 @@ targets:
         # Never shipped. With Hardened Runtime the XCTest runner's library validation refuses the
         # ad-hoc signed test bundle ("different Team IDs").
         ENABLE_HARDENED_RUNTIME: NO
+    # Xcode copies these onto the sandboxed KararUITests-Runner; the port test's stand-in server
+    # (a child of the runner) needs to listen on 11435.
+    entitlements:
+      path: KararUITests.entitlements
+      properties:
+        com.apple.security.network.server: true
 schemes:
   # Unit tests only: what CI runs (release.yml).
   Karar:

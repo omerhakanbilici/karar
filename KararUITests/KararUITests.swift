@@ -20,8 +20,9 @@ final class KararUITests: XCTestCase {
 
     private struct SetupError: Error, CustomStringConvertible { let description: String }
 
+    // No `continueAfterFailure = false`: with it, a failed assert runs the async tearDown from
+    // inside this @MainActor test and deadlocks the runner. A test that can't go on throws instead.
     override func setUp() async throws {
-        continueAfterFailure = false
         if let answer = await Self.portAnswer() {
             throw SetupError(description: "Port 11435 answers (\(answer.prefix(40))). "
                 + "Quit Ollaya.app and any ollaya serve, then run the UI tests again.")
@@ -67,23 +68,26 @@ final class KararUITests: XCTestCase {
     }
 
     func testAPortHeldByAnotherProgramShowsTheBanner() async throws {
-        // Anything that answers HTTP but isn't Ollaya: python's file server says 200 + a listing.
+        // Anything that answers HTTP but isn't Ollaya. Perl, not python3: the runner is sandboxed and
+        // /usr/bin/python3 is an xcrun shim, which refuses to run there.
         let squatter = Process()
-        squatter.executableURL = URL(filePath: "/usr/bin/python3")
-        squatter.arguments = ["-m", "http.server", "11435", "--bind", "127.0.0.1"]
-        squatter.currentDirectoryURL = FileManager.default.temporaryDirectory
+        squatter.executableURL = URL(filePath: "/usr/bin/perl")
+        squatter.arguments = ["-MIO::Socket::INET", "-e", #"""
+            my $s = IO::Socket::INET->new(LocalAddr => "127.0.0.1:11435", Listen => 5, ReuseAddr => 1) or die;
+            while (my $c = $s->accept) { sysread $c, my $r, 4096; print $c "HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\nbusy"; close $c }
+            """#]
         squatter.standardOutput = FileHandle.nullDevice
         squatter.standardError = FileHandle.nullDevice
         try squatter.run()
         self.squatter = squatter
         for _ in 0..<50 where await Self.portAnswer() == nil { try await Task.sleep(for: .milliseconds(100)) }
         let answer = await Self.portAnswer()
-        XCTAssertNotNil(answer, "the stand-in server did not start")
+        _ = try XCTUnwrap(answer, "the stand-in server did not start")
 
         let app = launch(models: try Self.emptyStore().path)
         let title = app.staticTexts["bannerTitle"]
         XCTAssertTrue(title.waitForExistence(timeout: 30))
-        XCTAssertEqual(title.label, "Port 11435 is in use by another program")
+        XCTAssertEqual(title.value as? String, "Port 11435 is in use by another program")   // macOS: text is the value
         attach(app, "port-in-use-light")
     }
 
