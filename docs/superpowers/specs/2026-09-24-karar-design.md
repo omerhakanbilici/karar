@@ -86,7 +86,8 @@ a custom domain for the website (added later with a `CNAME` file).
     so the editor must not suggest that any length works. The engine counts the text once per
     question, together with that question's instructions and options, and sums over the questions
     (measured in Phase 4), so a tooltip says so ("… counted once per question (5 questions)").
-    When the response has `state_truncated: true`, the counter becomes a warning in system orange: "Text too long for <model>: only the first part was read" (§5).
+    When the response has `state_truncated: true`, the counter becomes a warning in system orange:
+    "Text too long for <model>: only the first part was read" (§5).
   - Simple mode: one row per question, human label, answer in words ("Yes"/"No", the choice
     label, "1.8 / 3"), a bar, a percentage.
   - Advanced mode: each question is an editable card (id, type, instructions, criteria) showing the
