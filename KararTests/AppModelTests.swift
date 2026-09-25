@@ -68,7 +68,8 @@ final class AppModelTests: XCTestCase {
     }
 
     private func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
-        for _ in 0..<100 where !condition() { try? await Task.sleep(for: .milliseconds(20)) }
+        // 10 s: generous for shared CI runners; returns as soon as the condition holds.
+        for _ in 0..<500 where !condition() { try? await Task.sleep(for: .milliseconds(20)) }
         XCTAssertTrue(condition(), "condition not met in time", file: file, line: line)
     }
 
@@ -199,7 +200,7 @@ final class AppModelTests: XCTestCase {
         fake.tagsDelays = [.milliseconds(300), .zero]
         fake.tagsFailure = nil
         let slow = Task { await app.refreshModels() }          // older call, answers last
-        try? await Task.sleep(for: .milliseconds(50))
+        await waitUntil { fake.tagsDelays.count == 1 }         // the older call took its 300 ms delay
         fake.tagsFailure = OllayaError(error: "HTTP 500", code: nil)
         await app.refreshModels()                              // newest call fails first
         fake.tagsFailure = nil

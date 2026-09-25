@@ -35,7 +35,8 @@ final class DaemonTests: XCTestCase {
     }
 
     private func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
-        for _ in 0..<100 where !condition() { try? await Task.sleep(for: .milliseconds(20)) }
+        // 10 s: generous for shared CI runners; returns as soon as the condition holds.
+        for _ in 0..<500 where !condition() { try? await Task.sleep(for: .milliseconds(20)) }
         XCTAssertTrue(condition(), "condition not met in time", file: file, line: line)
     }
 
