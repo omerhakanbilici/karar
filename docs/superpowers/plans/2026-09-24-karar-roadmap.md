@@ -78,6 +78,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   SF Symbol. Its orange need not match the in-app truncation warning's system orange.
 
 - [ ] **Phase 6 — Release: DMG, CI, repo docs, publish.**
+  Plan: [`2026-09-25-phase-6-release.md`](2026-09-25-phase-6-release.md)
   `scripts/make-dmg.sh` (always `Karar.dmg`), `scripts/smoke.sh`, `.github/workflows/release.yml`
   (tag `v*` → fetch Ollaya → test → Release build → `Karar.dmg` → GitHub Release), `README.md`,
   `THIRD_PARTY.md`, screenshots (light + dark). **Ask the user before** creating the public GitHub
