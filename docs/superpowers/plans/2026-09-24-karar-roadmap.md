@@ -131,7 +131,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   Settings → Privacy & Security with the Open Anyway button. The user takes (or approves) the
   screenshots; they come from a real first launch of the released DMG.
 
-- [ ] **Phase 8 — Toolbar overflow (») fix. Must fix before anyone else sees the app much.**
+- [x] **Phase 8 — Toolbar overflow (») fix. Must fix before anyone else sees the app much.**
   Plan: [`2026-09-26-phase-8-toolbar-overflow.md`](2026-09-26-phase-8-toolbar-overflow.md)
   The user (Phase 6 session): "people must not see the app like this; it looks very, very bad".
   Symptom: an overflow chevron (») on the right of the toolbar while Advanced (the inspector) is

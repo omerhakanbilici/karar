@@ -1,6 +1,6 @@
 # Phase 8 — Toolbar overflow (») fix
 
-> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Steps use `- [x]`.
 
 **Goal:** no » in the toolbar in any frame when Advanced opens/closes, when the sidebar is hidden or
 shown (Advanced on and off), and while resizing the window down; both SDKs (27 local, 26.5 runner),
@@ -50,26 +50,26 @@ toggle and its animation stay. Very small windows squeeze or hide elements; the 
 ## Tasks
 
 ### Task 1: Implement
-- [ ] Replace `.inspector(isPresented:)` with `HStack(spacing: 0) { content; if advanced { Divider(); InspectorView(app:).frame(width: 320) } }`.
-- [ ] Drop the horizontal `minWidth` (keep `minHeight: 480`); keep `growWindowIfNeeded()` (1050 pt) so
+- [x] Replace `.inspector(isPresented:)` with `HStack(spacing: 0) { content; if advanced { Divider(); InspectorView(app:).frame(width: 320) } }`.
+- [x] Drop the horizontal `minWidth` (keep `minHeight: 480`); keep `growWindowIfNeeded()` (1050 pt) so
       Advanced opens readable; rewrite the comments that talk about the inspector's width limits.
-- [ ] Check first launch without a saved frame still opens at a sensible size; add `.defaultSize`
+- [x] Check first launch without a saved frame still opens at a sensible size; add `.defaultSize`
       on the `Window` scene if not.
-- [ ] `xcodebuild … test` passes.
+- [x] `xcodebuild … test` passes.
 
 ### Task 2: Verify (acceptance)
-- [ ] Probe + XCUITest, real clicks, both SDKs, light and dark, window 1050 and 720 (and 1400):
+- [x] Probe + XCUITest, real clicks, both SDKs, light and dark, window 1050 and 720 (and 1400):
       Advanced on/off, Hide/Show Sidebar with Advanced on and off → zero states with a hidden
       toolbar item, detail never wider than the window.
-- [ ] Resize down by dragging the window edge (XCUITest) from 1400 to the smallest width with the
+- [x] Resize down by dragging the window edge (XCUITest) from 1400 to the smallest width with the
       sidebar shown, Advanced on and off; record at 60 fps; note the width where items start to
       overflow (legitimate, by the decision above).
-- [ ] Region videos → ffmpeg scene frames, no » in any frame; show the user.
-- [ ] Remove the throwaway code; build and test again.
+- [x] Region videos → ffmpeg scene frames, no » in any frame; show the user.
+- [x] Remove the throwaway code; build and test again.
 
 ### Task 3: Screenshots, release
-- [ ] Overwrite `docs/screenshots/main-{light,dark}.png` (Advanced off, sidebar shown) and
+- [x] Overwrite `docs/screenshots/main-{light,dark}.png` (Advanced off, sidebar shown) and
       `advanced-{light,dark}.png`, 2× from the built-in display, window activated, same framing as now.
-- [ ] Bump to 0.1.3 (build 4), `xcodegen generate`, tick the roadmap + notes, commit, push to `main`
+- [x] Bump to 0.1.3 (build 4), `xcodegen generate`, tick the roadmap + notes, commit, push to `main`
       (no force-push; noreply email), tag `v0.1.3`, push the tag → `release.yml` publishes the DMG.
-- [ ] The user confirms on the released build.
+- [x] The user confirms on the released build.
