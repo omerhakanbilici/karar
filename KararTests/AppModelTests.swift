@@ -294,7 +294,7 @@ final class AppModelTests: XCTestCase {
         let app = makeApp(fake)
         fake.tagsDelays = [.milliseconds(300), .zero]
         let slow = Task { await app.refreshModels() }          // sees the old list, answers last
-        try? await Task.sleep(for: .milliseconds(50))
+        await waitUntil { fake.tagsDelays.count == 1 }         // the older call took its 300 ms delay
         fake.installed = ["laya:multilingual"]
         await app.refreshModels()
         await slow.value
