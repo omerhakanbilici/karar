@@ -3,9 +3,9 @@ import SwiftUI
 /// About Karar (spec §3.3): versions, links, and the licences of Karar, Ollaya and the models.
 struct AboutView: View {
     let app: AppModel
-    @State private var shown: Licence?
+    @Environment(\.openWindow) private var openWindow
 
-    struct Licence: Identifiable {
+    struct Licence: Identifiable, Codable, Hashable {
         let title: String
         let url: URL?
         var id: String { url?.path ?? title }
@@ -89,7 +89,6 @@ struct AboutView: View {
         .padding(28)
         .frame(width: 440)
         .fixedSize(horizontal: false, vertical: true)
-        .sheet(item: $shown) { LicenceView(licence: $0) }
     }
 
     private var running: String {
@@ -116,7 +115,7 @@ struct AboutView: View {
             Text(name)
             HStack(spacing: 12) {
                 ForEach(files) { file in
-                    Button(file.title) { shown = file }
+                    Button(file.title) { openWindow(value: file) }
                         .buttonStyle(.link)
                         .font(.caption)
                         .disabled(file.url == nil)
@@ -126,11 +125,11 @@ struct AboutView: View {
     }
 }
 
-/// One licence text in a sheet. Lines are drawn lazily: the notices run to half a megabyte.
-private struct LicenceView: View {
+/// One licence text in its own window (like macOS "Acknowledgements" windows). Lines are drawn
+/// lazily: the notices run to half a megabyte.
+struct LicenceView: View {
     let licence: AboutView.Licence
     private let lines: [String]
-    @Environment(\.dismiss) private var dismiss
 
     init(licence: AboutView.Licence) {
         self.licence = licence
@@ -139,32 +138,18 @@ private struct LicenceView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(licence.title)
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-            Divider()
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(lines.indices, id: \.self) { index in
-                        Text(lines[index].isEmpty ? " " : lines[index])
-                    }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(lines.indices, id: \.self) { index in
+                    Text(lines[index].isEmpty ? " " : lines[index])
                 }
-                .font(.caption.monospaced())
-                .textSelection(.enabled)
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Divider()
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
-            }
+            .font(.caption.monospaced())
+            .textSelection(.enabled)
             .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 640, height: 520)
-        .onExitCommand { dismiss() }
+        .frame(minWidth: 480, minHeight: 320)
+        .navigationTitle(licence.title)
     }
 }
