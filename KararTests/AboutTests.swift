@@ -1,6 +1,7 @@
 import XCTest
 @testable import Karar
 
+@MainActor
 final class AboutTests: XCTestCase {
     func testModelLicencesComeFromTheCatalog() {
         let licences = AboutView.modelLicences
