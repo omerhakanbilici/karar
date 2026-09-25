@@ -12,7 +12,13 @@ final class AppModel {
 
     let daemon: Daemon
     private(set) var models: [ModelInfo] = []
-    var model: String? { didSet { if model != oldValue { run() } } }
+    var model: String? {
+        didSet {
+            guard model != oldValue else { return }
+            if model != nil { missingModel = nil }
+            run()
+        }
+    }
     /// The question set in use when `isCustom` is false. Choosing a preset (even the one on screen)
     /// leaves "My questions", which stay in memory for `useMyQuestions()`.
     var preset = Preset.all[0] { didSet { if preset != oldValue || isCustom { usePreset() } } }
@@ -36,6 +42,10 @@ final class AppModel {
     private(set) var isUpdating = false
 
     private(set) var modelsLoaded = false
+    /// Why the last `/api/tags` failed, shown in the window's banner (spec §5); nil once it works.
+    private(set) var modelsError: String?
+    /// The selected model after it disappeared outside Karar (spec §5); cleared once one is picked.
+    private(set) var missingModel: String?
     private(set) var engineVersion = ""
     private(set) var isOnboarding = false
     private(set) var downloads: [String: Download] = [:]
@@ -50,7 +60,8 @@ final class AppModel {
     private var task: Task<Void, Never>?
     private var currentQuestions = Question.parse(Preset.all[0].questions)
     private var myQuestions: [Question]?   // kept while a preset is in use
-    private var refreshes = 0
+    private var refreshes = 0   // refreshModels() calls started
+    private var applied = 0     // the newest call whose answer is on screen
     private var pullTasks: [String: Task<Void, Never>] = [:]
 
     init(daemon: Daemon, decide: @escaping Decide, tags: @escaping Tags, version: @escaping Version,
@@ -130,23 +141,52 @@ final class AppModel {
         pins.removeAll { $0.id == pin.id }
     }
 
-    /// Called when the engine is ready.
+    /// Called whenever the engine becomes ready: at launch and after every (re)start. Asking again
+    /// replaces an error left from before an automatic restart (spec §5).
     func connect() async {
         await refreshModels()
         engineVersion = (try? await version()) ?? ""
+        run()
     }
 
-    /// Reloads the installed models; keeps the selection if it is still installed. When calls
-    /// overlap, the newest one wins. Finding no model starts onboarding (spec §3.1).
+    /// Reloads the installed models. The newest call's answer wins; an older one that answers later
+    /// is dropped. A failure keeps the list and shows why (spec §5).
+    ///
+    /// The selection stays while installed. One that disappeared outside Karar is cleared, not
+    /// replaced (spec §5), and comes back if the model does. Finding no model starts onboarding
+    /// (spec §3.1); finding some ends it, unless one of Karar's own downloads is running or done
+    /// (its "Get started" is then the way out).
     func refreshModels() async {
         refreshes += 1
         let call = refreshes
-        guard let fresh = try? await tags(), call == refreshes else { return }
+        let fresh: [ModelInfo]
+        do {
+            fresh = try await tags()
+        } catch {
+            guard call > applied else { return }
+            applied = call
+            modelsError = error.localizedDescription
+            return
+        }
+        guard call > applied else { return }
+        applied = call
+        modelsError = nil
         models = fresh
         modelsLoaded = true
-        if fresh.isEmpty { isOnboarding = true }
-        if !fresh.contains(where: { $0.name == model }) {
-            model = fresh.first?.name
+        if fresh.isEmpty {
+            isOnboarding = true
+        } else if isOnboarding, !downloads.values.contains(where: { $0.error == nil }) {
+            isOnboarding = false
+        }
+        if let model, !fresh.contains(where: { $0.name == model }) {
+            missingModel = model
+            self.model = nil
+        } else if model == nil {
+            if let missingModel {
+                if fresh.contains(where: { $0.name == missingModel }) { model = missingModel }
+            } else {
+                model = fresh.first?.name
+            }
         }
     }
 
@@ -188,9 +228,10 @@ final class AppModel {
         }
     }
 
-    func delete(_ model: String) async {
+    func delete(_ name: String) async {
         do {
-            try await deleteModel(model)
+            try await deleteModel(name)
+            if model == name { model = nil }   // deleted here: the first model left takes over
         } catch {
             deleteError = error.localizedDescription
         }
@@ -236,12 +277,20 @@ final class AppModel {
                 result = response
                 error = nil
                 questionErrors = [:]
+                isUpdating = false
             } catch {
                 guard !Task.isCancelled else { return }
                 result = nil
-                show(error)
+                isUpdating = false
+                if (error as? OllayaError)?.code == "MODEL_NOT_FOUND" {
+                    // Deleted outside Karar (spec §5): the refresh clears the selection, and the
+                    // missing-model note replaces this message.
+                    self.error = nil
+                    await refreshModels()
+                } else {
+                    show(error)
+                }
             }
-            isUpdating = false
         }
     }
 

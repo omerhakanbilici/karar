@@ -11,6 +11,7 @@ final class FakeOllaya {
     var pulls: [String: AsyncThrowingStream<PullProgress, Error>.Continuation] = [:]
     var deleted: [String] = []
     var deleteFailure: Error?
+    var tagsFailure: Error?
 
     /// Answers every triage question; the response's `model` echoes the state so tests can tell
     /// which request produced the visible result.
@@ -26,6 +27,7 @@ final class FakeOllaya {
         let snapshot = installed
         let delay = tagsDelays.isEmpty ? .zero : tagsDelays.removeFirst()
         try await Task.sleep(for: delay)
+        if let tagsFailure { throw tagsFailure }
         return snapshot.map { ModelInfo(name: $0, size: 1, details: .init(format: "onnx", family: "laya", parameterSize: "")) }
     }
 
@@ -121,11 +123,11 @@ final class AppModelTests: XCTestCase {
 
     func testErrorsAreShown() async {
         let fake = FakeOllaya()
-        fake.failure = OllayaError(error: "model \"laya:xl\" not found, try pulling it first", code: "MODEL_NOT_FOUND")
+        fake.failure = OllayaError(error: "HTTP 500", code: nil)
         let app = makeApp(fake)
         app.text = "hello"
         await waitUntil { !app.isUpdating }
-        XCTAssertEqual(app.error, "model \"laya:xl\" not found, try pulling it first")
+        XCTAssertEqual(app.error, "HTTP 500")
         XCTAssertNil(app.result)
     }
 
@@ -149,7 +151,90 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(app.model, "laya:multilingual")
         fake.installed = ["laya:en"]
         await app.refreshModels()
+        XCTAssertNil(app.model, "deleted outside Karar: no silent switch to another model (spec §5)")
+        XCTAssertEqual(app.missingModel, "laya:multilingual")
+        fake.installed = ["laya:en", "laya:multilingual"]
+        await app.refreshModels()
+        XCTAssertEqual(app.model, "laya:multilingual", "it came back: selected again")
+        XCTAssertNil(app.missingModel)
+    }
+
+    func testAFailedRefreshShowsTheErrorAndKeepsTheModels() async {
+        let fake = FakeOllaya()
+        fake.tagsFailure = OllayaError(error: "HTTP 500", code: nil)
+        let app = makeApp(fake)
+        await app.refreshModels()
+        XCTAssertFalse(app.modelsLoaded)
+        XCTAssertEqual(app.modelsError, "HTTP 500", "no silent spinner forever")
+        fake.tagsFailure = nil
+        await app.refreshModels()
+        XCTAssertTrue(app.modelsLoaded)
+        XCTAssertNil(app.modelsError)
+        fake.tagsFailure = OllayaError(error: "HTTP 500", code: nil)
+        await app.refreshModels()
+        XCTAssertEqual(app.models.map(\.name), ["laya:en", "laya:multilingual"], "the list on screen stays")
+        XCTAssertEqual(app.modelsError, "HTTP 500")
+    }
+
+    func testAnOlderRefreshAnsweringLastIsDropped() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        fake.tagsDelays = [.milliseconds(300), .zero]
+        fake.tagsFailure = nil
+        let slow = Task { await app.refreshModels() }          // older call, answers last
+        try? await Task.sleep(for: .milliseconds(50))
+        fake.tagsFailure = OllayaError(error: "HTTP 500", code: nil)
+        await app.refreshModels()                              // newest call fails first
+        fake.tagsFailure = nil
+        await slow.value
+        XCTAssertEqual(app.modelsError, "HTTP 500", "the newest answer stays on screen")
+    }
+
+    func testAModelNotFoundAnswerRefreshesTheModels() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        fake.installed = ["laya:multilingual"]
+        fake.failure = OllayaError(error: "model \"laya:en\" not found, try pulling it first", code: "MODEL_NOT_FOUND")
+        app.text = "Hello"
+        await waitUntil { app.model == nil }
+        XCTAssertEqual(app.missingModel, "laya:en")
+        XCTAssertNil(app.error, "the note replaces the engine's message")
+        XCTAssertFalse(app.isUpdating)
+    }
+
+    func testDeletingTheSelectedModelInKararPicksTheNextOne() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        await app.refreshModels()
+        await app.delete("laya:en")
+        XCTAssertEqual(app.model, "laya:multilingual")
+        XCTAssertNil(app.missingModel, "deleted on purpose, not missing")
+    }
+
+    func testModelsFromTheCommandLineEndOnboarding() async {
+        let fake = FakeOllaya()
+        fake.installed = []
+        let app = makeApp(fake)
+        app.model = nil
+        await app.connect()
+        XCTAssertTrue(app.isOnboarding)
+        fake.installed = ["laya:en"]                           // `ollaya pull laya:en` in Terminal
+        await app.refreshModels()
+        XCTAssertFalse(app.isOnboarding)
         XCTAssertEqual(app.model, "laya:en")
+    }
+
+    func testConnectAsksAgainSoAnOldErrorGoesAway() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        await app.refreshModels()
+        fake.failure = URLError(.networkConnectionLost)
+        app.text = "Hello"
+        await waitUntil { app.error != nil }
+        fake.failure = nil                                     // the engine restarted
+        await app.connect()
+        await waitUntil { app.result != nil }
+        XCTAssertNil(app.error)
     }
 
     func testTheNewestRefreshWins() async {
