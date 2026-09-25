@@ -12,6 +12,7 @@ final class FakeOllaya {
     var deleted: [String] = []
     var deleteFailure: Error?
     var tagsFailure: Error?
+    var versionDelay: Duration = .zero
 
     /// Answers every triage question; the response's `model` echoes the state so tests can tell
     /// which request produced the visible result.
@@ -31,7 +32,10 @@ final class FakeOllaya {
         return snapshot.map { ModelInfo(name: $0, size: 1, details: .init(format: "onnx", family: "laya", parameterSize: "")) }
     }
 
-    func version() async throws -> String { "0.3.2" }
+    func version() async throws -> String {
+        try await Task.sleep(for: versionDelay)
+        return "0.3.2"
+    }
 
     func pull(_ model: String) -> AsyncThrowingStream<PullProgress, Error> {
         let (stream, continuation) = AsyncThrowingStream.makeStream(of: PullProgress.self, throwing: Error.self)
@@ -235,6 +239,24 @@ final class AppModelTests: XCTestCase {
         await app.connect()
         await waitUntil { app.result != nil }
         XCTAssertNil(app.error)
+    }
+
+    func testAModelThatComesBackDuringAReconnectIsAskedOnce() async {
+        let fake = FakeOllaya()
+        let app = makeApp(fake)
+        app.text = "Hello"
+        await waitUntil { app.result != nil }
+        fake.installed = ["laya:multilingual"]
+        await app.refreshModels()
+        XCTAssertNil(app.model)
+        XCTAssertEqual(app.missingModel, "laya:en")
+        fake.installed = ["laya:en", "laya:multilingual"]
+        fake.versionDelay = .milliseconds(300)
+        let before = fake.calls.count
+        await app.connect()
+        await waitUntil { !app.isUpdating }
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(fake.calls.count, before + 1, "the refresh's own re-selection already re-ran; connect() must not ask again")
     }
 
     func testTheNewestRefreshWins() async {

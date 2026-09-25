@@ -141,12 +141,14 @@ final class AppModel {
         pins.removeAll { $0.id == pin.id }
     }
 
-    /// Called whenever the engine becomes ready: at launch and after every (re)start. Asking again
-    /// replaces an error left from before an automatic restart (spec §5).
+    /// Called whenever the engine becomes ready: at launch and after every (re)start. Re-running
+    /// replaces an error left from before an automatic restart (spec §5); skipped when the refresh
+    /// already changed the selection, since that ran through `model`'s `didSet` already.
     func connect() async {
+        let before = model
         await refreshModels()
         engineVersion = (try? await version()) ?? ""
-        run()
+        if model == before { run() }
     }
 
     /// Reloads the installed models. The newest call's answer wins; an older one that answers later
