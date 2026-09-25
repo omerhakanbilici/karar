@@ -247,11 +247,19 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   Karar window", when several Karar processes may run. `OLLAYA_REGISTRY=http://127.0.0.1:8123`
   (python http.server) gives a 404 pull and `http://127.0.0.1:9` a 502; with a registry override
   `/api/tags` names are fully qualified (`ollaya.dev/library/laya:en`), so "Installed" doesn't match.
+- Phase 5: Ollaya v0.5.0 (released 2026-09-25) ships an official desktop app (Tauri, menu bar on
+  macOS, `/Applications/Ollaya.app`) that runs `ollaya serve` on 11435 with `~/.ollaya`. Karar
+  adopts it: answers work, the sidebar shows "Karar was built for Ollaya v0.3.2", and quitting Karar
+  leaves it running. Its app also starts/stops the server, downloads models and runs a preset or
+  custom-JSON questions (run on Enter), so README and site (Phases 6–7) should say what Karar adds:
+  native SwiftUI, live answers while typing, editable question cards, the inspector, the token
+  counter and truncation warning, pins.
 - Deferred from Phase 5 reviews: with no models at all the toolbar reads "Choose a model"; licence
   windows re-read their file on each open; `preload()` is an untracked best-effort task;
   `modelsError ?? ""` is redundant; ⇧⌘D lives on the sidebar button, not the menu bar, and may not
   work with the sidebar collapsed; preload keeps each picked model loaded for 30 m (a router loads
-  both targets, ~1.5 GB), which can evict the user's own models on an adopted daemon.
+  both targets, ~1.5 GB), which can evict the user's own models on an adopted daemon; RootView's
+  top comment still says only AppDelegate starts the daemon (the banner buttons do too).
 - UI tests (Phase 6): XCUITest drives the real mouse and keyboard while it runs (don't use the Mac
   meanwhile) and does not work while the screen is locked.
 - Phase 6: CI needs Xcode 26+ for `AppIcon.icon`; the About link `github.com/omerhakanbilici/karar`
