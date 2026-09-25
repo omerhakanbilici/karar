@@ -18,13 +18,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         super.init()
         #if DEBUG
-        // UI checks without typing (no Accessibility): `-KararText "…"`, `-KararQuestions '{…}'`.
+        // UI checks: -KararText "…", -KararQuestions '{…}', -KararAppearance dark|light
         if let text = UserDefaults.standard.string(forKey: "KararText") { app.text = text }
-        if let json = UserDefaults.standard.string(forKey: "KararQuestions") { app.questions = Question.parse(Data(json.utf8)) }
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "-KararQuestions"), idx + 1 < args.count {
+            app.questions = Question.parse(Data(args[idx + 1].utf8))
+        }
         #endif
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if let appearance = UserDefaults.standard.string(forKey: "KararAppearance") {
+            NSApp.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
+        }
+        #endif
         // Unit tests are hosted in the app; don't start a real engine under them.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         Task { await app.daemon.start() }
