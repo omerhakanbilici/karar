@@ -45,7 +45,8 @@ app. If one of them is already running, Karar uses that engine and leaves it run
 1. Download [Karar.dmg](https://github.com/omerhakanbilici/karar/releases/latest/download/Karar.dmg),
    open it and drag Karar to Applications.
 2. Open Karar. Karar is not notarized by Apple, so macOS says it can't check the app for malware.
-   Click **Done**.
+   Click **Done**. (On macOS 14 the button is **OK**; you can also Control-click Karar and choose
+   **Open**.)
 3. Open **System Settings → Privacy & Security**, scroll down to the message about Karar and click
    **Open Anyway**, then confirm. You only do this once.
 
