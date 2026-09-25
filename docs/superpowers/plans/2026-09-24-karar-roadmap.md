@@ -118,7 +118,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   locally; (b) running them locally needs Automation mode / Accessibility enabled once
   (`automationmodetool`) — the user does that; never change the system setting yourself.
 
-- [ ] **Phase 7 — Website.**
+- [x] **Phase 7 — Website.**
   Plan: [`2026-09-25-phase-7-website.md`](2026-09-25-phase-7-website.md)
   `site/index.html` + `style.css` per spec §8, `.github/workflows/pages.yml`. **Ask the user** to set
   Settings → Pages → Source = GitHub Actions.
@@ -154,7 +154,10 @@ Plans are written at the start of their phase, not all up front, so they match t
   Pick with the user after showing each candidate as screenshots/frames.
   *Acceptance:* no » in any frame at 60 fps for: open/close Advanced; hide/show the sidebar with
   Advanced on and off; resizing down to the minimum width; both SDKs, light and dark; the user
-  confirms on the released build. Then refresh README and site screenshots and release.
+  confirms on the released build. Then refresh the screenshots and release: overwrite
+  `docs/screenshots/main-{light,dark}.png` and `advanced-{light,dark}.png` (same names; `main-*` with
+  Advanced off and the sidebar shown) and push to `main`. The README and the site read the same files
+  (`site/screenshots` is a symlink), and `pages.yml` redeploys on `docs/screenshots/**`.
 
 ## After v1 (not scheduled)
 
@@ -379,3 +382,13 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   answer worked without problems.
 - Phase 6, screenshots (v0.1.1): the README images are now 2× from the built-in display (2200×1400,
   2560×1560) with the window activated first; `-NSWindow Frame` works there.
+- Phase 7: `site/screenshots` is a git symlink to `../docs/screenshots`; `actions/upload-pages-artifact`
+  archives with `tar --dereference`, so the deployed site has real files (all of `docs/screenshots`,
+  ~2.3 MB). `pages.yml` runs on `site/**`, `docs/screenshots/**` and itself. The Gatekeeper dialog
+  image (`not-opened.png`, 2×, from the user) is shown at 253 px with a 13 px radius that hides the
+  wallpaper in its corners; the README uses it too. `site/icon.png` is exported once from
+  `Karar/AppIcon.icon` with `ictool` (256 px).
+- Phase 7, for site checks: headless Chrome's `--window-size` has a minimum width (~500 px) and
+  follows the Mac's appearance, so phone width and light/dark need CDP
+  (`Emulation.setDeviceMetricsOverride` + `setEmulatedMedia prefers-color-scheme`); Node 26's built-in
+  `WebSocket` is enough, no packages.
