@@ -160,7 +160,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   Advanced off and the sidebar shown) and push to `main`. The README and the site read the same files
   (`site/screenshots` is a symlink), and `pages.yml` redeploys on `docs/screenshots/**`.
 
-- [ ] **Phase 9 — Ollaya v0.7.1: the Apple GPU (Karar v0.2.0).**
+- [x] **Phase 9 — Ollaya v0.7.1: the Apple GPU (Karar v0.2.0).**
   Spec: [`../specs/2026-09-26-ollaya-v0.7.1-design.md`](../specs/2026-09-26-ollaya-v0.7.1-design.md)
   Plan: [`2026-09-27-phase-9-ollaya-v0.7.1.md`](2026-09-27-phase-9-ollaya-v0.7.1.md)
   The user (2026-09-26): bump to the latest Ollaya now, carefully, however small the change.
@@ -419,3 +419,33 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   directly (not by XCUITest), a ⌥⌘I or `defaults` flip of Advanced never reproduced the inspector
   case; the XCUITest and the user's clicks did. `NSWindow.minSize` is tied to `contentMinSize`.
   All test runs of Karar share the user's defaults domain, including `NSWindow Frame main`.
+- Phase 9: Ollaya v0.7.1 bump (Karar v0.2.0): minos still 14.0; the MLX archive's `mlx.metallib`
+  (135,865,440 bytes) sits in `Contents/Resources/mlx_metal/`, and the runner finds it there without
+  `OLLAYA_LIBRARY_PATH`; no new entitlements, MLX runs under Hardened Runtime with ad-hoc signing;
+  DMG 64 MB (v0.1.3: 18 MB).
+- Phase 9, GPU latency, M1 Pro, triage (5 questions), warm, through the API: laya:en 1141 → 166 ms,
+  laya:multilingual 419 → 61 ms. In the app, laya:latest shows 208–377 ms. A cold GPU load takes
+  ~1.0–1.3 s. The first answer after launch was already 346 ms thanks to the preload.
+- Phase 9: new catalog models run on the CPU on a Mac. Warm medians (M1 Pro, triage): von 1856 ms,
+  kev 2324 ms, decision 4442 ms. All three licences are Apache-2.0. Their summaries say "slower than
+  Laya" (the user's decision for von).
+- Phase 9: llama.cpp is not embedded — library validation (Hardened Runtime, ad-hoc) refuses ad-hoc
+  llama.cpp dylibs (`dlopen failed`); `com.apple.security.cs.disable-library-validation` would allow
+  them. Karar's engine refuses a GGUF pull after fetching only the manifest and a 510-byte config:
+  "winnow:e4b runs on llama.cpp, and this installation of ollaya has no llama.cpp libraries
+  (lib/ollaya/llama); nothing was downloaded" (`UNSUPPORTED_MODEL`).
+- Phase 9, the GPU refresh: after a re-pull, the engine loads a model from its new manifest as a
+  separate MLX runner, and the old CPU runner stays until its `keep_alive` ends (`/api/ps` lists
+  both); the refresh flag is `gpuRefresh:<OLLAYA_MODELS or "default">` in Karar's defaults domain,
+  deleted with `defaults delete io.github.omerhakanbilici.karar "gpuRefresh:<store>"` to re-test; an
+  old-install store can be faked by removing the `application/vnd.ollaya.arch` layer from the
+  manifests with jq.
+- Phase 9, screenshots: with an external display as the main screen, Karar opens there at 1×;
+  `-NSWindow Frame main "x y w h sx sy sw sh"` with the built-in screen's own frame (from
+  `NSScreen.screens`, e.g. `227 -982 1512 982`) opens it on the built-in display at 2×. The model
+  selection isn't persisted, so the router needs a click, and that click re-runs the answer warm.
+  With a mouse connected, scroll bars show in the Advanced shots (accepted by the user).
+- Phase 9: in About, with four Ollaya links, "Third-party notices" wraps onto two lines (seen by the
+  user, accepted as is).
+- Phase 9: UI tests 6/6 (31 s) after the user approved Automation Mode again. `KararUITests` still
+  pass with the silent refresh (it pulls laya:en's arch layer into the test store).
