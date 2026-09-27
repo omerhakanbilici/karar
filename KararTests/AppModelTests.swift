@@ -55,10 +55,19 @@ final class FakeOllaya {
 
 @MainActor
 final class AppModelTests: XCTestCase {
-    private func makeApp(_ fake: FakeOllaya) -> AppModel {
+    /// A throwaway defaults domain: Karar's real domain is shared by every build on this Mac.
+    private func scratchDefaults() -> UserDefaults {
+        let name = "KararTests-\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: name) }
+        return UserDefaults(suiteName: name)!
+    }
+
+    private func makeApp(_ fake: FakeOllaya, defaults: UserDefaults? = nil) -> AppModel {
         let daemon = Daemon(probe: { .none }, launch: { _ in {} })
         let app = AppModel(daemon: daemon, decide: fake.decide, tags: fake.tags, version: fake.version,
-                           pull: fake.pull, delete: fake.delete, load: fake.load, debounce: .milliseconds(50))
+                           pull: fake.pull, delete: fake.delete, load: fake.load,
+                           defaults: defaults ?? scratchDefaults(), gpuRefreshKey: "gpuRefresh:test",
+                           debounce: .milliseconds(50))
         app.model = "laya:en"
         return app
     }
@@ -596,5 +605,75 @@ final class AppModelTests: XCTestCase {
         let app = makeApp(FakeOllaya())
         app.pin()
         XCTAssertTrue(app.pins.isEmpty)
+    }
+
+    func testConnectRePullsTheInstalledGPUModelsOneByOneThenPreloads() async {
+        let fake = FakeOllaya()
+        fake.installed = ["laya:latest", "laya:en", "gliclass:latest", "laya:multilingual"]
+        let defaults = scratchDefaults()
+        let app = makeApp(fake, defaults: defaults)
+        await app.connect()
+        await waitUntil { fake.pulls["laya:en"] != nil }
+        XCTAssertEqual(Set(fake.pulls.keys), ["laya:en"], "one at a time, GPU models only")
+        fake.pulls["laya:en"]?.finish()
+        await waitUntil { fake.pulls["laya:multilingual"] != nil }
+        XCTAssertFalse(defaults.bool(forKey: app.gpuRefreshKey), "not before every pull succeeded")
+        fake.pulls["laya:multilingual"]?.finish()
+        await waitUntil { defaults.bool(forKey: app.gpuRefreshKey) }
+        XCTAssertEqual(Set(fake.pulls.keys), ["laya:en", "laya:multilingual"])
+        // Picking laya:en in makeApp, connect(), then the refresh: the engine loads it again from
+        // the new manifest, on the GPU.
+        await waitUntil { fake.loads == ["laya:en", "laya:en", "laya:en"] }
+    }
+
+    func testTheGPURefreshRunsOncePerStore() async {
+        let fake = FakeOllaya()
+        let defaults = scratchDefaults()
+        let app = makeApp(fake, defaults: defaults)
+        defaults.set(true, forKey: app.gpuRefreshKey)
+        await app.connect()
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertTrue(fake.pulls.isEmpty)
+    }
+
+    func testAFailedGPURefreshIsRetriedAtTheNextConnect() async {
+        let fake = FakeOllaya()                                // laya:en, laya:multilingual
+        let defaults = scratchDefaults()
+        let app = makeApp(fake, defaults: defaults)
+        await app.connect()
+        await waitUntil { fake.pulls["laya:en"] != nil }
+        fake.pulls["laya:en"]?.finish(throwing: URLError(.notConnectedToInternet))
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertNil(fake.pulls["laya:multilingual"], "stops at the first failure")
+        XCTAssertFalse(defaults.bool(forKey: app.gpuRefreshKey))
+        fake.pulls = [:]
+        await app.connect()                                    // e.g. the engine restarted
+        await waitUntil { fake.pulls["laya:en"] != nil }
+    }
+
+    func testNothingToRefreshStillSetsTheFlag() async {
+        let fake = FakeOllaya()
+        fake.installed = ["gliclass:latest"]
+        let defaults = scratchDefaults()
+        let app = makeApp(fake, defaults: defaults)
+        await app.connect()
+        await waitUntil { defaults.bool(forKey: app.gpuRefreshKey) }
+        XCTAssertTrue(fake.pulls.isEmpty)
+    }
+
+    func testAFailedModelListLeavesTheGPURefreshForLater() async {
+        let fake = FakeOllaya()
+        fake.tagsFailure = URLError(.cannotConnectToHost)
+        let defaults = scratchDefaults()
+        let app = makeApp(fake, defaults: defaults)
+        await app.connect()
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertTrue(fake.pulls.isEmpty)
+        XCTAssertFalse(defaults.bool(forKey: app.gpuRefreshKey))
+    }
+
+    func testTheGPURefreshKeyNamesTheModelStore() {
+        XCTAssertEqual(AppModel.gpuRefreshKey(for: [:]), "gpuRefresh:default")
+        XCTAssertEqual(AppModel.gpuRefreshKey(for: ["OLLAYA_MODELS": "/tmp/m"]), "gpuRefresh:/tmp/m")
     }
 }

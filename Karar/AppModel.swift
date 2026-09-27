@@ -67,9 +67,16 @@ final class AppModel {
     private var refreshes = 0   // refreshModels() calls started
     private var applied = 0     // the newest call whose answer is on screen
     private var pullTasks: [String: Task<Void, Never>] = [:]
+    private let defaults: UserDefaults
+    /// Where `refreshForGPU()` records that it is done, per model store.
+    let gpuRefreshKey: String
+    private var refreshingForGPU = false
 
     init(daemon: Daemon, decide: @escaping Decide, tags: @escaping Tags, version: @escaping Version,
-         pull: @escaping Pull, delete: @escaping Delete, load: @escaping Load = { _ in }, debounce: Duration = .milliseconds(300)) {
+         pull: @escaping Pull, delete: @escaping Delete, load: @escaping Load = { _ in },
+         defaults: UserDefaults = .standard,
+         gpuRefreshKey: String = AppModel.gpuRefreshKey(for: ProcessInfo.processInfo.environment),
+         debounce: Duration = .milliseconds(300)) {
         self.daemon = daemon
         self.decide = decide
         self.tags = tags
@@ -77,6 +84,8 @@ final class AppModel {
         self.pull = pull
         self.deleteModel = delete
         self.load = load
+        self.defaults = defaults
+        self.gpuRefreshKey = gpuRefreshKey
         self.debounce = debounce
     }
 
@@ -158,6 +167,39 @@ final class AppModel {
             preload()
             run()
         }
+        Task { await refreshForGPU() }
+    }
+
+    /// Models whose registry manifests gained an `arch` layer with Ollaya v0.7.1, which lets them
+    /// run on the Apple GPU (MLX). Installs pulled before that lack the layer and stay on the CPU.
+    static let gpuModels: Set<String> = ["laya:en", "laya:multilingual", "nli:modernbert-large"]
+
+    /// One flag per model store: every Karar build on this Mac shares one defaults domain, and
+    /// Karar's own engine uses Karar's `OLLAYA_MODELS`.
+    nonisolated static func gpuRefreshKey(for environment: [String: String]) -> String {
+        "gpuRefresh:" + (environment["OLLAYA_MODELS"] ?? "default")
+    }
+
+    /// Re-pulls the installed `gpuModels` once per model store (spec 2026-09-26 §4): the engine
+    /// fetches only the missing layer, then loads the model on the GPU next time. Silent, with no
+    /// download UI; a failure is retried at the next `connect()`.
+    // ponytail: a model loaded on the CPU before this stays loaded until its keep_alive ends
+    // (≤ 30 min, once per install); the engine can't unload the old runner by name.
+    func refreshForGPU() async {
+        guard !refreshingForGPU, modelsLoaded, modelsError == nil,
+              !defaults.bool(forKey: gpuRefreshKey) else { return }
+        refreshingForGPU = true
+        defer { refreshingForGPU = false }
+        let names = models.map(\.name).filter(Self.gpuModels.contains)
+        do {
+            for name in names {
+                for try await _ in pull(name) {}
+            }
+        } catch {
+            return
+        }
+        defaults.set(true, forKey: gpuRefreshKey)
+        if !names.isEmpty { preload() }
     }
 
     /// Reloads the installed models. The newest call's answer wins; an older one that answers later
