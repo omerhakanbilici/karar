@@ -174,13 +174,17 @@ Plans are written at the start of their phase, not all up front, so they match t
 Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
 
 - **Keeping the bundled Ollaya current.** The engine is pinned in `scripts/fetch-ollaya.sh`
-  (`OLLAYA_VERSION` + `OLLAYA_SHA256`); a runtime update means a new Karar release. Karar never
-  downloads an engine at run time: that would break the signed bundle and Hardened Runtime, and the
-  API contract and `Catalog.json` are verified against one pinned tag. Upstream ships several
-  releases a day, so bump only for a reason (a bug fix, a new model family, an API feature we need).
-  Steps: update both values, diff upstream `docs/api.md` between the two tags (§12 versioning, §13
+  (`OLLAYA_VERSION`, `OLLAYA_SHA256`, `OLLAYA_MLX_SHA256`); a runtime update means a new Karar
+  release. Karar never downloads an engine at run time: that would break the signed bundle and
+  Hardened Runtime, and the API contract and `Catalog.json` are verified against one pinned tag.
+  Upstream ships several releases a day, so bump only for a reason (a bug fix, a new model family,
+  an API feature we need). Steps: update the version and both checksums (`OLLAYA_SHA256`,
+  `OLLAYA_MLX_SHA256`), diff upstream `docs/api.md` between the two tags (§12 versioning, §13
   compatibility), re-check `Catalog.json` against the new registry, run `xcodebuild test` and
-  `scripts/smoke.sh`, then tag.
+  `scripts/smoke.sh`, re-check which models' manifests carry an `arch` layer against
+  `AppModel.gpuModels`, check the runner still looks for `mlx.metallib` in
+  `Contents/Resources/mlx_metal/` (smoke.sh fails if not) and that the named notice files in the
+  embed script still exist, then tag.
 - **Idea: scheduled bump PR.** A weekly GitHub Actions job checks the latest `ollaya-dev/ollaya`
   release. If it is newer than the pin, it updates `fetch-ollaya.sh`, runs the tests and the smoke
   test, and opens a PR with the `api.md` diff attached. It never merges or tags on its own.
@@ -419,7 +423,8 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   directly (not by XCUITest), a ⌥⌘I or `defaults` flip of Advanced never reproduced the inspector
   case; the XCUITest and the user's clicks did. `NSWindow.minSize` is tied to `contentMinSize`.
   All test runs of Karar share the user's defaults domain, including `NSWindow Frame main`.
-- Phase 9: Ollaya v0.7.1 bump (Karar v0.2.0): minos still 14.0; the MLX archive's `mlx.metallib`
+- Phase 9: Ollaya v0.7.1 bump (Karar v0.2.0): `ollaya` minos 14.0 (v0.5.0: 11.0), equal to Karar's
+  deployment target; the MLX archive's `mlx.metallib`
   (135,865,440 bytes) sits in `Contents/Resources/mlx_metal/`, and the runner finds it there without
   `OLLAYA_LIBRARY_PATH`; no new entitlements, MLX runs under Hardened Runtime with ad-hoc signing;
   DMG 64 MB (v0.1.3: 18 MB).

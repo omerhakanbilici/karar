@@ -174,6 +174,9 @@ final class AppModel {
     /// run on the Apple GPU (MLX). Installs pulled before that lack the layer and stay on the CPU.
     static let gpuModels: Set<String> = ["laya:en", "laya:multilingual", "nli:modernbert-large"]
 
+    /// The first Ollaya that stores and uses the arch layer; an older adopted engine must not set the flag.
+    static let gpuEngineVersion = "0.7.1"
+
     /// One flag per model store: every Karar build on this Mac shares one defaults domain, and
     /// Karar's own engine uses Karar's `OLLAYA_MODELS`.
     nonisolated static func gpuRefreshKey(for environment: [String: String]) -> String {
@@ -181,13 +184,15 @@ final class AppModel {
     }
 
     /// Re-pulls the installed `gpuModels` once per model store (spec 2026-09-26 §4): the engine
-    /// fetches only the missing layer, then loads the model on the GPU next time. Silent, with no
-    /// download UI; a failure is retried at the next `connect()`.
+    /// fetches only the missing layer, then loads the model on the GPU next time, only through an
+    /// engine that stores the layer (≥ `gpuEngineVersion`). Silent, with no download UI; a failure
+    /// is retried at the next `connect()`.
     // ponytail: a model loaded on the CPU before this stays loaded until its keep_alive ends
     // (≤ 30 min, once per install); the engine can't unload the old runner by name.
     func refreshForGPU() async {
         guard !refreshingForGPU, modelsLoaded, modelsError == nil,
-              !defaults.bool(forKey: gpuRefreshKey) else { return }
+              !defaults.bool(forKey: gpuRefreshKey),
+              engineVersion.compare(Self.gpuEngineVersion, options: .numeric) != .orderedAscending else { return }
         refreshingForGPU = true
         defer { refreshingForGPU = false }
         let names = models.map(\.name).filter(Self.gpuModels.contains)

@@ -9,7 +9,8 @@ Status: approved in brainstorming on 2026-09-24. Mockups: `.superpowers/brainsto
 ## 1. What Ollaya gives us
 
 - A single binary (`ollaya`, Rust, Apache-2.0). `ollaya serve` runs a daemon on `127.0.0.1:11435`.
-  macOS build: Apple silicon only (`ollaya-darwin-arm64.tgz`), ONNX Runtime + CoreML.
+  macOS build: Apple silicon only (`ollaya-darwin-arm64.tgz`), ONNX Runtime + CoreML, plus MLX on
+  the Apple GPU (kernels in `ollaya-darwin-arm64-mlx.tgz`) since v0.7.1.
 - Decision models never generate text. Input: a **state** (text or JSON) plus typed **questions**.
   Output per question, in one forward pass:
   - `choice` → label, `confidence`, `probabilities`
@@ -235,6 +236,6 @@ karar/
    Resolved: v0.7.1 targets macOS 14.0, the same as Karar.
 2. Ollaya ships several releases per day; pinning + checksum protects us, but API drift is possible
    between pins. Bumping `OLLAYA_VERSION` requires running `smoke.sh`.
-3. Real latency on Apple silicon (CPU/CoreML) is unmeasured; 300 ms debounce assumes < ~150 ms per call.
-   Measured with v0.7.1 on the Apple GPU (M1 Pro, warm, 5 questions): laya:en 166 ms,
-   laya:multilingual 61 ms; a cold load adds ~1.0–1.3 s.
+3. Real latency on Apple silicon was measured in Phase 2 (CPU) and Phase 9 (GPU): 300 ms debounce
+   assumes < ~150 ms per call. Measured with v0.7.1 on the Apple GPU (M1 Pro, warm, 5 questions):
+   laya:en 166 ms, laya:multilingual 61 ms; a cold load adds ~1.0–1.3 s.

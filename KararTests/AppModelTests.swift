@@ -14,6 +14,7 @@ final class FakeOllaya {
     var tagsFailure: Error?
     var versionDelay: Duration = .zero
     var loads: [String] = []
+    var engineVersion = "0.3.2"
 
     /// Answers every triage question; the response's `model` echoes the state so tests can tell
     /// which request produced the visible result.
@@ -35,7 +36,7 @@ final class FakeOllaya {
 
     func version() async throws -> String {
         try await Task.sleep(for: versionDelay)
-        return "0.3.2"
+        return engineVersion
     }
 
     func pull(_ model: String) -> AsyncThrowingStream<PullProgress, Error> {
@@ -610,6 +611,7 @@ final class AppModelTests: XCTestCase {
     func testConnectRePullsTheInstalledGPUModelsOneByOneThenPreloads() async {
         let fake = FakeOllaya()
         fake.installed = ["laya:latest", "laya:en", "gliclass:latest", "laya:multilingual"]
+        fake.engineVersion = "0.7.1"
         let defaults = scratchDefaults()
         let app = makeApp(fake, defaults: defaults)
         await app.connect()
@@ -624,10 +626,12 @@ final class AppModelTests: XCTestCase {
         // Picking laya:en in makeApp, connect(), then the refresh: the engine loads it again from
         // the new manifest, on the GPU.
         await waitUntil { fake.loads == ["laya:en", "laya:en", "laya:en"] }
+        XCTAssertTrue(app.downloads.isEmpty, "silent: no download UI")
     }
 
     func testTheGPURefreshRunsOncePerStore() async {
         let fake = FakeOllaya()
+        fake.engineVersion = "0.7.1"
         let defaults = scratchDefaults()
         let app = makeApp(fake, defaults: defaults)
         defaults.set(true, forKey: app.gpuRefreshKey)
@@ -638,6 +642,7 @@ final class AppModelTests: XCTestCase {
 
     func testAFailedGPURefreshIsRetriedAtTheNextConnect() async {
         let fake = FakeOllaya()                                // laya:en, laya:multilingual
+        fake.engineVersion = "0.7.1"
         let defaults = scratchDefaults()
         let app = makeApp(fake, defaults: defaults)
         await app.connect()
@@ -654,6 +659,7 @@ final class AppModelTests: XCTestCase {
     func testNothingToRefreshStillSetsTheFlag() async {
         let fake = FakeOllaya()
         fake.installed = ["gliclass:latest"]
+        fake.engineVersion = "0.7.1"
         let defaults = scratchDefaults()
         let app = makeApp(fake, defaults: defaults)
         await app.connect()
@@ -664,12 +670,26 @@ final class AppModelTests: XCTestCase {
     func testAFailedModelListLeavesTheGPURefreshForLater() async {
         let fake = FakeOllaya()
         fake.tagsFailure = URLError(.cannotConnectToHost)
+        fake.engineVersion = "0.7.1"
         let defaults = scratchDefaults()
         let app = makeApp(fake, defaults: defaults)
         await app.connect()
         try? await Task.sleep(for: .milliseconds(200))
         XCTAssertTrue(fake.pulls.isEmpty)
         XCTAssertFalse(defaults.bool(forKey: app.gpuRefreshKey))
+    }
+
+    func testAnOlderAdoptedEngineLeavesTheGPURefreshForKararsOwn() async {
+        let fake = FakeOllaya()                                // engineVersion "0.3.2", laya:en installed
+        let defaults = scratchDefaults()
+        let app = makeApp(fake, defaults: defaults)
+        await app.connect()
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertTrue(fake.pulls.isEmpty)
+        XCTAssertFalse(defaults.bool(forKey: app.gpuRefreshKey))
+        fake.engineVersion = "0.7.1"                           // Karar's own engine, later
+        await app.connect()
+        await waitUntil { fake.pulls["laya:en"] != nil }
     }
 
     func testTheGPURefreshKeyNamesTheModelStore() {
