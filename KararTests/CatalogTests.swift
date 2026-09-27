@@ -5,7 +5,8 @@ final class CatalogTests: XCTestCase {
     func testBundlesTheCatalogWithLayaRecommendedFirst() {
         let names = CatalogEntry.all.map(\.name)
         XCTAssertEqual(names, ["laya", "laya:multilingual", "laya:en", "laya:typed-decisions",
-                               "nli:modernbert-large", "nli", "gliclass", "decider:0.8b", "decider"])
+                               "nli:modernbert-large", "nli", "gliclass", "decider:0.8b", "decider",
+                               "von", "kev", "decision"])
         XCTAssertEqual(CatalogEntry.all.filter(\.recommended).map(\.name), ["laya"])
         for entry in CatalogEntry.all {
             XCTAssertFalse(entry.summary.isEmpty, entry.name)
