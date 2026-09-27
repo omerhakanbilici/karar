@@ -12,7 +12,7 @@ Karar is a native macOS app for [Ollaya](https://ollaya.dev), an engine for deci
 Decision models don't write text: they read a text and answer typed questions about it: a choice
 (refund, technical help, …), a score (2.4 of 3) or a yes/no, each with a calibrated confidence.
 Karar bundles the engine, downloads models for you, and re-runs the questions every time you
-pause typing.
+pause typing. On the Apple GPU, `laya` answers in tens to hundreds of milliseconds.
 
 **[Download Karar.dmg](https://github.com/omerhakanbilici/karar/releases/latest/download/Karar.dmg)**
 · Apple silicon · macOS 14 or later · [All releases](https://github.com/omerhakanbilici/karar/releases)
