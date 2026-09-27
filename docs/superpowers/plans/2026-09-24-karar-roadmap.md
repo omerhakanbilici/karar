@@ -160,6 +160,15 @@ Plans are written at the start of their phase, not all up front, so they match t
   Advanced off and the sidebar shown) and push to `main`. The README and the site read the same files
   (`site/screenshots` is a symlink), and `pages.yml` redeploys on `docs/screenshots/**`.
 
+- [ ] **Phase 9 — Ollaya v0.7.1: the Apple GPU (Karar v0.2.0).**
+  Spec: [`../specs/2026-09-26-ollaya-v0.7.1-design.md`](../specs/2026-09-26-ollaya-v0.7.1-design.md)
+  Plan: [`2026-09-27-phase-9-ollaya-v0.7.1.md`](2026-09-27-phase-9-ollaya-v0.7.1.md)
+  The user (2026-09-26): bump to the latest Ollaya now, carefully, however small the change.
+  Bundle v0.7.1 with MLX's `mlx.metallib` (laya and `nli:modernbert-large` on the Apple GPU,
+  ~7× faster, measured), no llama.cpp; a one-time silent re-pull moves existing installs to the
+  GPU; the catalog gains `von`, `kev`, `decision`; screenshots show ms timings.
+  *Acceptance:* spec §7, all nine checks; the user confirms the built app before the `v0.2.0` tag.
+
 ## After v1 (not scheduled)
 
 Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
