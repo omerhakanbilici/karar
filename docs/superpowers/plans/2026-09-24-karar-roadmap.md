@@ -166,7 +166,7 @@ Plans are written at the start of their phase, not all up front, so they match t
   The user (2026-09-26): bump to the latest Ollaya now, carefully, however small the change.
   Bundle v0.7.1 with MLX's `mlx.metallib` (laya and `nli:modernbert-large` on the Apple GPU,
   ~7× faster, measured), no llama.cpp; a one-time silent re-pull moves existing installs to the
-  GPU; the catalog gains `von`, `kev`, `decision`; screenshots show ms timings.
+  GPU; the catalog gains `von:1.1`, `kev:0.8b`, `decision:eos`; screenshots show ms timings.
   *Acceptance:* spec §7, all nine checks; the user confirms the built app before the `v0.2.0` tag.
 
 ## After v1 (not scheduled)
@@ -454,3 +454,9 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   user, accepted as is).
 - Phase 9: UI tests 6/6 (31 s) after the user approved Automation Mode again. `KararUITests` still
   pass with the silent refresh (it pulls laya:en's arch layer into the test store).
+- Phase 9: on 2026-09-27 upstream moved `kev:latest` to `kev:4b` (9.5 GB), a registry change with no
+  Ollaya release; Karar's catalog now names explicit tags for its new models (`von:1.1`, `kev:0.8b`,
+  `decision:eos`). Ollaya v0.7.2 and v0.7.3 (the same days) were checked: CUDA packs, JevK5 (GGUF),
+  `422 STATE_TRUNCATED` on `/v1/*` only, and faster laya CPU graphs through the registry. Nothing
+  for Karar's Mac build, so the pin stays v0.7.1. Re-check `Catalog.json` sizes and aliases against
+  the registry at every bump.

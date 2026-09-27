@@ -43,8 +43,8 @@ together with its licence file. The models Karar offers ([`Karar/Catalog.json`](
 | `gliclass` | [knowledgator/gliclass-instruct-large-v1.0](https://huggingface.co/knowledgator/gliclass-instruct-large-v1.0) | Apache-2.0 |
 | `decider:0.8b` | [Mapika/decider-0.8b](https://huggingface.co/Mapika/decider-0.8b) | Apache-2.0 |
 | `decider` | [Mapika/decider-2b](https://huggingface.co/Mapika/decider-2b) | Apache-2.0 |
-| `von` | [wfzyx/von](https://huggingface.co/wfzyx/von) | Apache-2.0 |
-| `kev` | [jaredpalmer/kev-0.8b](https://huggingface.co/jaredpalmer/kev-0.8b) on [Qwen/Qwen3.5-0.8B-Base](https://huggingface.co/Qwen/Qwen3.5-0.8B-Base) | Apache-2.0 |
-| `decision` | [llm-semantic-router/Decision-1.0-Eos-0.8B](https://huggingface.co/llm-semantic-router/Decision-1.0-Eos-0.8B) | Apache-2.0 |
+| `von:1.1` | [wfzyx/von](https://huggingface.co/wfzyx/von) | Apache-2.0 |
+| `kev:0.8b` | [jaredpalmer/kev-0.8b](https://huggingface.co/jaredpalmer/kev-0.8b) on [Qwen/Qwen3.5-0.8B-Base](https://huggingface.co/Qwen/Qwen3.5-0.8B-Base) | Apache-2.0 |
+| `decision:eos` | [llm-semantic-router/Decision-1.0-Eos-0.8B](https://huggingface.co/llm-semantic-router/Decision-1.0-Eos-0.8B) | Apache-2.0 |
 
 Each model's own licence file (in its download) is authoritative.

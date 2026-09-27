@@ -64,7 +64,7 @@ final class DownloadTests: XCTestCase {
         d.apply(manifest(), at: t0)
         d.apply(manifest(), at: t0)
         d.apply(layer("e", 853_634_822, 853_634_822), at: t0)
-        let expected = 853_634_822.0 / Double(853_634_822 + 684_161_400)
+        let expected = 853_634_822.0 / Double(853_634_822 + 683_340_362)
         XCTAssertEqual(d.fraction, expected, accuracy: 0.0001)
     }
 

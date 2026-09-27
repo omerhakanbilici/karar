@@ -6,7 +6,7 @@ final class CatalogTests: XCTestCase {
         let names = CatalogEntry.all.map(\.name)
         XCTAssertEqual(names, ["laya", "laya:multilingual", "laya:en", "laya:typed-decisions",
                                "nli:modernbert-large", "nli", "gliclass", "decider:0.8b", "decider",
-                               "von", "kev", "decision"])
+                               "von:1.1", "kev:0.8b", "decision:eos"])
         XCTAssertEqual(CatalogEntry.all.filter(\.recommended).map(\.name), ["laya"])
         for entry in CatalogEntry.all {
             XCTAssertFalse(entry.summary.isEmpty, entry.name)
@@ -19,6 +19,7 @@ final class CatalogTests: XCTestCase {
     func testCanonicalNamesMatchTags() {
         XCTAssertEqual(CatalogEntry.named("laya")?.canonicalName, "laya:latest")
         XCTAssertEqual(CatalogEntry.named("laya:en")?.canonicalName, "laya:en")
+        XCTAssertEqual(CatalogEntry.named("kev:0.8b")?.canonicalName, "kev:0.8b")
     }
 
     func testTheRouterIncludesItsTargetsInRouteOrder() throws {
