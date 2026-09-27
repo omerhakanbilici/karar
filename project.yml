@@ -36,13 +36,22 @@ targets:
         script: |
           set -euo pipefail
           src="$SRCROOT/vendor/ollaya"
-          [ -x "$src/bin/ollaya" ] || { echo "error: run scripts/fetch-ollaya.sh first"; exit 1; }
+          [ -x "$src/bin/ollaya" ] && [ -f "$src/lib/ollaya/mlx_metal/mlx.metallib" ] \
+            || { echo "error: run scripts/fetch-ollaya.sh first"; exit 1; }
           install -m 755 "$src/bin/ollaya" "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya"
           codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" --options runtime --identifier io.github.omerhakanbilici.karar.ollaya "$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/ollaya"
-          mkdir -p "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya"
-          cp "$src/share/doc/ollaya/"* "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/"
-          cp "$src/VERSION" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Ollaya/VERSION"
-          cp "$SRCROOT/LICENSE" "$SRCROOT/NOTICE" "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/"
+          res="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH"
+          # MLX's Metal kernels (the Apple GPU): the runner looks in <exe dir>/../Resources/mlx_metal/.
+          mkdir -p "$res/mlx_metal" "$res/Ollaya"
+          cp "$src/lib/ollaya/mlx_metal/mlx.metallib" "$res/mlx_metal/"
+          # Named files, not a glob: share/doc/ollaya/ also holds directories, and llama.cpp's
+          # notices stay out with llama.cpp itself (not embedded).
+          for f in LICENSE THIRD_PARTY_NOTICES onnxruntime-ThirdPartyNotices.txt; do
+            cp "$src/share/doc/ollaya/$f" "$res/Ollaya/"
+          done
+          cp "$src/share/doc/ollaya/mlx_metal/THIRD_PARTY_NOTICES" "$res/Ollaya/mlx-THIRD_PARTY_NOTICES"
+          cp "$src/VERSION" "$res/Ollaya/VERSION"
+          cp "$SRCROOT/LICENSE" "$SRCROOT/NOTICE" "$res/"
   KararTests:
     type: bundle.unit-test
     platform: macOS

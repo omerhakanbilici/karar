@@ -1,7 +1,8 @@
 #!/bin/sh
 # Real-engine smoke test (spec §6), local only: starts the ollaya inside a built Karar.app on
 # 127.0.0.1:11436 with a scratch model store, pulls laya:en, runs one decide with the triage
-# question set, and checks the answer's shape. Never touches ~/.ollaya. Needs jq (macOS 15+).
+# question set, and checks the answer's shape and that laya:en ran on the Apple GPU (metal).
+# Never touches ~/.ollaya. Needs jq (macOS 15+).
 #   scripts/smoke.sh [path/to/Karar.app]      default: the Release build
 #   KARAR_SMOKE_MODELS=<dir> keeps the store (and laya:en, ~850 MB) for the next run and the UI tests.
 set -eu
@@ -44,4 +45,8 @@ jq -e '(.answers | length) == 5
   and (.answers.frustration.score | type) == "number"
   and .usage.input_tokens > 0' "$tmp/decide.json" > /dev/null \
   || { echo "error: unexpected answer:" >&2; cat "$tmp/decide.json" >&2; exit 1; }
-echo "smoke test passed: $(jq -c '{model, intent: .answers.intent.choice, ms: (.total_duration / 1000000 | floor)}' "$tmp/decide.json")"
+# The Apple GPU (spec 2026-09-26 §7): laya:en's manifest carries an arch layer, so it loads on
+# MLX when the bundle holds Resources/mlx_metal/mlx.metallib. Guards the metallib's place.
+device=$(curl -fs "http://$host/api/ps" | jq -r '.models[] | select(.name == "laya:en") | .device')
+[ "$device" = metal ] || { echo "error: laya:en ran on '$device', not the Apple GPU (metal)" >&2; exit 1; }
+echo "smoke test passed: $(jq -c '{model, intent: .answers.intent.choice, ms: (.total_duration / 1000000 | floor)}' "$tmp/decide.json") on $device"
