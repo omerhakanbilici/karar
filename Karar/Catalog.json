@@ -18,7 +18,7 @@
    "languages": "English", "license": "Apache-2.0", "size": 1532870365, "recommended": false, "includes": []},
   {"name": "decider", "summary": "Mapika's decider on Qwen3.5-2B. The most accurate, and the largest.",
    "languages": "English", "license": "Apache-2.0", "size": 3791735106, "recommended": false, "includes": []},
-  {"name": "von", "summary": "Victor Hugo Panisa's Von 1.1 on ModernBERT-large (395M parameters). Reads long text: 8,192 tokens.",
+  {"name": "von", "summary": "Victor Hugo Panisa's Von 1.1 on ModernBERT-large (395M parameters). Reads long text: 8,192 tokens; slower than Laya.",
    "languages": "English", "license": "Apache-2.0", "size": 1587952249, "recommended": false, "includes": []},
   {"name": "kev", "summary": "Jared Palmer's Kev on Qwen3.5-0.8B. Reads 8,192 tokens; slower than Laya.",
    "languages": "English", "license": "Apache-2.0", "size": 1822775186, "recommended": false, "includes": []},
