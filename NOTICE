@@ -3,11 +3,12 @@ Copyright 2026 Ömer Hakan Bilici
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
-This product bundles Ollaya (https://github.com/ollaya-dev/ollaya),
-licensed under the Apache License, Version 2.0. Ollaya's own licence and
-third-party notices ship inside the app at Contents/Resources/Ollaya/.
+This product bundles Ollaya (https://github.com/ollaya-dev/ollaya) v0.7.1,
+licensed under the Apache License, Version 2.0, including MLX (MIT). Ollaya's
+own licence and third-party notices, and MLX's notices, ship inside the app at
+Contents/Resources/Ollaya/.
 
-The question sets in Karar/Presets/ are copied from Ollaya v0.5.0
+The question sets in Karar/Presets/ are copied from Ollaya v0.7.1
 (crates/ollaya-api/src/presets/), licensed under the Apache License, Version 2.0.
 
 Karar is not affiliated with or endorsed by the Ollaya project.

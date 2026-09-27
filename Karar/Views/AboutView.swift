@@ -70,6 +70,7 @@ struct AboutView: View {
                         Licence(owner: "Ollaya", title: "Licence", name: "LICENSE", subdirectory: "Ollaya"),
                         Licence(owner: "Ollaya", title: "Third-party notices", name: "THIRD_PARTY_NOTICES", subdirectory: "Ollaya"),
                         Licence(owner: "Ollaya", title: "ONNX Runtime notices", name: "onnxruntime-ThirdPartyNotices.txt", subdirectory: "Ollaya"),
+                        Licence(owner: "Ollaya", title: "MLX notices", name: "mlx-THIRD_PARTY_NOTICES", subdirectory: "Ollaya"),
                     ])
                 }
                 GridRow {

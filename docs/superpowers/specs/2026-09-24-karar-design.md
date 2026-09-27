@@ -31,6 +31,13 @@ Status: approved in brainstorming on 2026-09-24. Mockups: `.superpowers/brainsto
 - Built-in presets (question sets): `triage`, `email`, `guard`, `moderation`, `router`.
   They live in the Ollaya binary (`crates/ollaya-api/src/presets/*.json` since v0.5.0), not in the HTTP API, so
   Karar ships its own copies of those JSON files (Apache-2.0, attributed in `THIRD_PARTY.md`).
+- Ollaya v0.6.0 added a sixth preset, `agent`, whose state is JSON (`request`, `command`); Karar
+  sends text and does not bundle it.
+- GGUF models (`winnow`) run on llama.cpp, which Karar does not bundle (ad-hoc signing plus
+  library validation would need `disable-library-validation`). Karar's own engine refuses to pull
+  them, after fetching only its manifest: "winnow:e4b runs on llama.cpp, and this installation of
+  ollaya has no llama.cpp libraries (lib/ollaya/llama); nothing was downloaded" (code
+  `UNSUPPORTED_MODEL`). An adopted CLI or Ollaya.app engine runs them.
 - There is no HTTP endpoint that lists models available in the remote registry. Karar ships a small
   curated `Catalog.json` (name, one-line description, languages, license).
 
@@ -129,9 +136,11 @@ Karar.app
   mirroring `docs/api.md`. `pull` returns an `AsyncThrowingStream<PullProgress>` built from
   `URLSession.bytes(for:)` + `.lines`. Errors decode Ollaya's error body (`error`, `code`, `detail[].loc`).
 - **Bundling Ollaya:** `scripts/fetch-ollaya.sh` downloads the pinned release
-  (`OLLAYA_VERSION`, `v0.3.2` at first, `v0.5.0` since Phase 6) `ollaya-darwin-arm64.tgz`, checks it against
-  `sha256sum.txt`, and places `ollaya` where an Xcode build phase copies it into
-  `Contents/MacOS/`. The binary is not committed.
+  (`OLLAYA_VERSION`, `v0.3.2` at first, `v0.5.0` since Phase 6, `v0.7.1` since v0.2.0):
+  `ollaya-darwin-arm64.tgz` and `ollaya-darwin-arm64-mlx.tgz`, each checked against its
+  SHA-256. An Xcode build phase copies `ollaya` into `Contents/MacOS/` and MLX's `mlx.metallib`
+  into `Contents/Resources/mlx_metal/`, where Ollaya's runner looks for it in an app bundle; with
+  it, `laya` and `nli:modernbert-large` run on the Apple GPU. Neither file is committed.
 - **Identity & signing:** bundle ID `io.github.omerhakanbilici.karar`, fixed from day one.
   Hardened Runtime on from day one; the app and the nested `ollaya` are ad-hoc signed.
   No App Sandbox (Karar spawns a process and shares `~/.ollaya` with the CLI).
@@ -223,6 +232,9 @@ karar/
 
 1. Ollaya's macOS minimum version is undocumented upstream; check with `vtool -show-build` on the
    pinned binary and set the deployment target to the higher of that and 14.0.
+   Resolved: v0.7.1 targets macOS 14.0, the same as Karar.
 2. Ollaya ships several releases per day; pinning + checksum protects us, but API drift is possible
    between pins. Bumping `OLLAYA_VERSION` requires running `smoke.sh`.
 3. Real latency on Apple silicon (CPU/CoreML) is unmeasured; 300 ms debounce assumes < ~150 ms per call.
+   Measured with v0.7.1 on the Apple GPU (M1 Pro, warm, 5 questions): laya:en 166 ms,
+   laya:multilingual 61 ms; a cold load adds ~1.0–1.3 s.
