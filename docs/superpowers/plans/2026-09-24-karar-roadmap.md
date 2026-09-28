@@ -192,6 +192,13 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   `omerhakanbilici/karar`; if a newer release exists, a small note in the sidebar links to the DMG.
   No Sparkle (no third-party dependencies); installing stays manual. An LM Studio-style runtime
   page or Settings window only if there is ever more than this to configure.
+- **Idea: answers that move** (user, 2026-09-28, after comparing with Ollaya's desktop app). When
+  answers update, the bars slide to their new length and the percentages and the answer time change
+  with `.contentTransition(.numericText())`, so live results feel alive. Ollaya's web window
+  re-renders without motion.
+- **Idea: an "Apple GPU" badge** (user, 2026-09-28). Next to the answer time, a small `bolt` SF
+  Symbol and "GPU" when `/api/ps` lists the answering model on `metal`, so the Phase 9 speed is
+  visible. The official app shows no device.
 
 ## Notes for later phases
 
@@ -460,3 +467,9 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
   `422 STATE_TRUNCATED` on `/v1/*` only, and faster laya CPU graphs through the registry. Nothing
   for Karar's Mac build, so the pin stays v0.7.1. Re-check `Catalog.json` sizes and aliases against
   the registry at every bump.
+- Ollaya v0.7.4 and v0.7.5 (2026-09-28) were checked:
+  - Windows GGUF on the GPU, Pascal/Volta pack choice, CLM (a 20 GB GPU), `decider:2b-vision`;
+  - an optional `images` field on `/api/decide` (default `[]`) and `OLLAYA_LOG_DIR`;
+  - presets and MLX unchanged, and every `Catalog.json` size and alias still matches the registry.
+
+  Nothing for Karar's Mac build; the pin stays v0.7.1.
