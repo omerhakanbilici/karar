@@ -199,6 +199,18 @@ Ideas, not phases. Spec §2 lists auto-update as out of scope for v1.
 - **Idea: an "Apple GPU" badge** (user, 2026-09-28). Next to the answer time, a small `bolt` SF
   Symbol and "GPU" when `/api/ps` lists the answering model on `metal`, so the Phase 9 speed is
   visible. The official app shows no device.
+- **Idea: image input** (user, 2026-09-28). Ollaya v0.7.5 adds `images` to `/api/decide` (base64,
+  as Ollama's field) for `decider:2b-vision`. In Karar: drop or paste an image onto the editor,
+  show a thumbnail, and send it with the text.
+
+  What upstream says (v0.7.5):
+  - one PNG per request, up to about 1 megapixel, and up to 10 options per question;
+  - JPEG is refused: decoders differ from the authors' PIL. Converting with ImageIO has the same
+    problem, so check parity before offering that;
+  - a model that reads no images answers with a 422.
+
+  Needs a pin bump to ≥ 0.7.5. The model runs on the CPU on a Mac (3–16 s upstream), so measure it
+  here first; the idea only pays off once it is fast enough, or a GPU path exists.
 
 ## Notes for later phases
 
